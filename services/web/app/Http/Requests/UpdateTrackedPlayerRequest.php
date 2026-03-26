@@ -2,7 +2,8 @@
 
 namespace App\Http\Requests;
 
-use App\Models\TrackedPlayer;
+use App\Enums\PlatformRegion;
+use App\Enums\RiotGame;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -30,7 +31,7 @@ class UpdateTrackedPlayerRequest extends FormRequest
                     fn ($query) => $query->where('user_id', $this->user()?->id),
                 ),
             ],
-            'game' => ['required', 'string', Rule::in(array_keys(TrackedPlayer::GAME_LABELS))],
+            'game' => ['required', 'string', Rule::enum(RiotGame::class)],
             'riot_name' => [
                 'required',
                 'string',
@@ -45,7 +46,7 @@ class UpdateTrackedPlayerRequest extends FormRequest
                     ->ignore($trackedPlayer?->id),
             ],
             'riot_tagline' => ['required', 'string', 'max:10'],
-            'region' => ['required', 'string', 'max:32'],
+            'region' => ['required', 'string', Rule::enum(PlatformRegion::class)],
             'discord_user_id' => ['required', 'string', 'max:40'],
             'is_active' => ['required', 'boolean'],
         ];

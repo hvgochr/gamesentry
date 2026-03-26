@@ -47,9 +47,9 @@ class DashboardController extends Controller
                 ->map(fn ($trackedPlayer) => [
                     'id' => $trackedPlayer->id,
                     'riot_id' => $trackedPlayer->riot_name.'#'.$trackedPlayer->riot_tagline,
-                    'game' => $trackedPlayer->game,
-                    'game_label' => TrackedPlayer::labelForGame($trackedPlayer->game),
-                    'region' => $trackedPlayer->region,
+                    'game' => $trackedPlayer->game->value,
+                    'game_label' => $trackedPlayer->game->label(),
+                    'region' => $trackedPlayer->region->value,
                     'discord_user_id' => $trackedPlayer->discord_user_id,
                     'is_active' => $trackedPlayer->is_active,
                     'server_name' => $trackedPlayer->discordServer?->name,

@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Enums\PlatformRegion;
+use App\Enums\RiotGame;
 use App\Models\DiscordServer;
 use App\Models\TrackedPlayer;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -18,15 +20,16 @@ class TrackedPlayerFactory extends Factory
      */
     public function definition(): array
     {
-        $region = fake()->randomElement(['euw', 'na', 'kr', 'oce']);
+        $region = fake()->randomElement(PlatformRegion::cases());
+        $game = fake()->randomElement(RiotGame::cases());
 
         return [
             'discord_server_id' => DiscordServer::factory(),
-            'game' => fake()->randomElement(array_keys(TrackedPlayer::GAME_LABELS)),
+            'game' => $game->value,
             'riot_name' => fake()->unique()->lexify('Player????'),
             'riot_tagline' => strtoupper(fake()->lexify('???')),
-            'region' => $region,
-            'routing_region' => TrackedPlayer::routingRegionFor($region),
+            'region' => $region->value,
+            'routing_region' => $region->routingRegion()->value,
             'discord_user_id' => fake()->unique()->numerify('##################'),
             'is_active' => true,
         ];

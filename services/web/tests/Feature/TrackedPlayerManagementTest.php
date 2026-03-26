@@ -27,7 +27,28 @@ class TrackedPlayerManagementTest extends TestCase
                 ->component('players/index')
                 ->has('servers', 1)
                 ->has('trackedPlayers', 1)
-                ->has('gameOptions', 2),
+                ->has('gameOptions', 2)
+                ->has('regionOptions', 25),
+            );
+    }
+
+    public function test_players_page_serializes_region_labels_and_routing_regions()
+    {
+        $user = User::factory()->create();
+        $server = DiscordServer::factory()->for($user)->create();
+        $trackedPlayer = TrackedPlayer::factory()->for($server)->create([
+            'region' => 'euw',
+            'routing_region' => 'europe',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('players.index'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('trackedPlayers.0.id', $trackedPlayer->id)
+                ->where('trackedPlayers.0.region', 'euw')
+                ->where('trackedPlayers.0.region_label', 'EUW')
+                ->where('trackedPlayers.0.routing_region', 'europe')
+                ->etc(),
             );
     }
 

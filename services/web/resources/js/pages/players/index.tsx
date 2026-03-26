@@ -32,6 +32,12 @@ type GameOption = {
     label: string;
 };
 
+type RegionOption = {
+    value: string;
+    label: string;
+    routingRegion: string;
+};
+
 type TrackedPlayerItem = {
     id: number;
     discord_server_id: number;
@@ -42,6 +48,8 @@ type TrackedPlayerItem = {
     riot_tagline: string;
     riot_id: string;
     region: string;
+    region_label: string;
+    routing_region: string | null;
     discord_user_id: string;
     is_active: boolean;
 };
@@ -53,6 +61,7 @@ type PlayersPageProps = {
     };
     servers: ServerOption[];
     gameOptions: GameOption[];
+    regionOptions: RegionOption[];
     trackedPlayers: TrackedPlayerItem[];
 };
 
@@ -70,6 +79,7 @@ export default function Players({
     summary,
     servers,
     gameOptions,
+    regionOptions,
     trackedPlayers,
 }: PlayersPageProps) {
     const hasServers = servers.length > 0;
@@ -220,13 +230,34 @@ export default function Players({
 
                                             <div className="grid gap-2">
                                                 <Label htmlFor="region">
-                                                    Region
+                                                    Platform region
                                                 </Label>
-                                                <Input
+                                                <select
                                                     id="region"
                                                     name="region"
-                                                    placeholder="euw"
-                                                />
+                                                    className={selectClassName}
+                                                    defaultValue={
+                                                        regionOptions[0]?.value
+                                                    }
+                                                >
+                                                    {regionOptions.map(
+                                                        (option) => (
+                                                            <option
+                                                                key={
+                                                                    option.value
+                                                                }
+                                                                value={
+                                                                    option.value
+                                                                }
+                                                            >
+                                                                {option.label} ·{' '}
+                                                                {
+                                                                    option.routingRegion
+                                                                }
+                                                            </option>
+                                                        ),
+                                                    )}
+                                                </select>
                                                 <InputError
                                                     message={errors.region}
                                                 />
@@ -308,7 +339,10 @@ export default function Players({
                                                     </CardTitle>
                                                     <CardDescription>
                                                         {trackedPlayer.game_label}{' '}
-                                                        · {trackedPlayer.region}{' '}
+                                                        ·{' '}
+                                                        {
+                                                            trackedPlayer.region_label
+                                                        }{' '}
                                                         ·{' '}
                                                         {trackedPlayer.server_name ??
                                                             'No server'}
@@ -316,6 +350,17 @@ export default function Players({
                                                 </div>
 
                                                 <div className="flex flex-wrap gap-2">
+                                                    {trackedPlayer.routing_region && (
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="rounded-full px-3 py-1"
+                                                        >
+                                                            Route:{' '}
+                                                            {
+                                                                trackedPlayer.routing_region
+                                                            }
+                                                        </Badge>
+                                                    )}
                                                     <Badge
                                                         variant="secondary"
                                                         className="rounded-full px-3 py-1"
@@ -478,15 +523,39 @@ export default function Players({
                                                             <Label
                                                                 htmlFor={`region-${trackedPlayer.id}`}
                                                             >
-                                                                Region
+                                                                Platform region
                                                             </Label>
-                                                            <Input
+                                                            <select
                                                                 id={`region-${trackedPlayer.id}`}
                                                                 name="region"
+                                                                className={
+                                                                    selectClassName
+                                                                }
                                                                 defaultValue={
                                                                     trackedPlayer.region
                                                                 }
-                                                            />
+                                                            >
+                                                                {regionOptions.map(
+                                                                    (option) => (
+                                                                        <option
+                                                                            key={
+                                                                                option.value
+                                                                            }
+                                                                            value={
+                                                                                option.value
+                                                                            }
+                                                                        >
+                                                                            {
+                                                                                option.label
+                                                                            }{' '}
+                                                                            ·{' '}
+                                                                            {
+                                                                                option.routingRegion
+                                                                            }
+                                                                        </option>
+                                                                    ),
+                                                                )}
+                                                            </select>
                                                             <InputError
                                                                 message={
                                                                     errors.region

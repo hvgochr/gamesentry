@@ -39,17 +39,20 @@ class TrackedPlayerController extends Controller
                 ])
                 ->values(),
             'gameOptions' => TrackedPlayer::gameOptions(),
+            'regionOptions' => TrackedPlayer::regionOptions(),
             'trackedPlayers' => $trackedPlayers
                 ->map(fn (TrackedPlayer $trackedPlayer) => [
                     'id' => $trackedPlayer->id,
                     'discord_server_id' => $trackedPlayer->discord_server_id,
                     'server_name' => $trackedPlayer->discordServer?->name,
-                    'game' => $trackedPlayer->game,
-                    'game_label' => TrackedPlayer::labelForGame($trackedPlayer->game),
+                    'game' => $trackedPlayer->game->value,
+                    'game_label' => $trackedPlayer->game->label(),
                     'riot_name' => $trackedPlayer->riot_name,
                     'riot_tagline' => $trackedPlayer->riot_tagline,
                     'riot_id' => $trackedPlayer->riot_name.'#'.$trackedPlayer->riot_tagline,
-                    'region' => $trackedPlayer->region,
+                    'region' => $trackedPlayer->region->value,
+                    'region_label' => $trackedPlayer->region->label(),
+                    'routing_region' => $trackedPlayer->routing_region?->value,
                     'discord_user_id' => $trackedPlayer->discord_user_id,
                     'is_active' => $trackedPlayer->is_active,
                 ])
