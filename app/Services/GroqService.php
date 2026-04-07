@@ -25,7 +25,7 @@ class GroqService
         $response = $this->request()->post('/chat/completions', [
             'model' => config('services.groq.model'),
             'temperature' => 0.9,
-            'max_tokens' => 120,
+            'max_completion_tokens' => 120,
             'messages' => [
                 [
                     'role' => 'system',
