@@ -42,6 +42,11 @@ return [
         'bot_permissions' => env('DISCORD_BOT_PERMISSIONS', '274878221312'),
     ],
 
+    'riot' => [
+        'lol_key' => env('RIOT_LOL_API_KEY'),
+        'tft_key' => env('RIOT_TFT_API_KEY'),
+    ],
+
     'groq' => [
         'api_key' => env('GROQ_API_KEY'),
         'model' => env('GROQ_MODEL', 'llama-3.1-8b-instant'),
