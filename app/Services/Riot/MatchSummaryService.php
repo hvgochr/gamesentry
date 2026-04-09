@@ -46,7 +46,7 @@ class MatchSummaryService
             'color' => $summary['color'],
             'fields' => $fields,
             'footer' => [
-                'text' => 'RiotSentry',
+                'text' => 'Gamesentry',
             ],
             'timestamp' => $summary['finished_at'],
         ];
