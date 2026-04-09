@@ -65,8 +65,8 @@ class MatchSummaryService
         $kills = (int) data_get($participant, 'kills', 0);
         $deaths = (int) data_get($participant, 'deaths', 0);
         $assists = (int) data_get($participant, 'assists', 0);
-        $result = data_get($participant, 'win') ? 'Victoire' : 'Defaite';
-        $champion = (string) data_get($participant, 'championName', 'Inconnu');
+        $result = data_get($participant, 'win') ? 'victory' : 'defeat';
+        $champion = (string) data_get($participant, 'championName', 'Unknown Champion');
         $finishedAt = CarbonImmutable::createFromTimestampMs(
             (int) data_get($match, 'info.gameEndTimestamp', (int) (microtime(true) * 1000)),
         );
@@ -76,7 +76,7 @@ class MatchSummaryService
             'match_id' => (string) data_get($match, 'metadata.matchId'),
             'riot_id' => "{$watchedPlayer->game_name}#{$watchedPlayer->tag_line}",
             'title' => "{$champion} - {$result}",
-            'summary_line' => "{$watchedPlayer->game_name} a termine sur {$champion} avec un KDA {$kills}/{$deaths}/{$assists}.",
+            'summary_line' => "{$watchedPlayer->game_name} has achieved a {$result} playing {$champion} with a KDA of {$kills}/{$deaths}/{$assists}.",
             'color' => data_get($participant, 'win') ? 0x22C55E : 0xEF4444,
             'finished_at' => $finishedAt->toIso8601String(),
             'duration_seconds' => $durationSeconds,
@@ -86,19 +86,19 @@ class MatchSummaryService
                 'kda' => "{$kills}/{$deaths}/{$assists}",
                 'lane' => (string) (data_get($participant, 'individualPosition')
                     ?: data_get($participant, 'teamPosition')
-                    ?: 'Inconnue'),
+                    ?: 'Unknown Lane'),
                 'cs' => $cs,
                 'gold' => (int) data_get($participant, 'goldEarned', 0),
                 'vision' => (int) data_get($participant, 'visionScore', 0),
                 'queue' => (string) (data_get($match, 'info.gameMode') ?: 'MATCHED'),
             ],
             'embed_fields' => [
-                ['name' => 'Resultat', 'value' => $result, 'inline' => true],
+                ['name' => 'Result', 'value' => $result, 'inline' => true],
                 ['name' => 'KDA', 'value' => "{$kills}/{$deaths}/{$assists}", 'inline' => true],
                 ['name' => 'CS', 'value' => (string) $cs, 'inline' => true],
                 ['name' => 'Gold', 'value' => (string) data_get($participant, 'goldEarned', 0), 'inline' => true],
                 ['name' => 'Vision', 'value' => (string) data_get($participant, 'visionScore', 0), 'inline' => true],
-                ['name' => 'Duree', 'value' => $this->formatDuration($durationSeconds), 'inline' => true],
+                ['name' => 'Duration', 'value' => $this->formatDuration($durationSeconds), 'inline' => true],
             ],
         ];
     }
@@ -123,7 +123,7 @@ class MatchSummaryService
             'match_id' => (string) data_get($match, 'metadata.match_id'),
             'riot_id' => "{$watchedPlayer->game_name}#{$watchedPlayer->tag_line}",
             'title' => "TFT - #{$placement}/8",
-            'summary_line' => "{$watchedPlayer->game_name} a termine a la place #{$placement} avec une compo {$units}.",
+            'summary_line' => "{$watchedPlayer->game_name} finished in #{$placement} place with a team of {$units}.",
             'color' => $placement <= 4 ? 0x22C55E : 0xF59E0B,
             'finished_at' => $finishedAt->toIso8601String(),
             'duration_seconds' => $durationSeconds,
@@ -138,12 +138,12 @@ class MatchSummaryService
             ],
             'embed_fields' => [
                 ['name' => 'Placement', 'value' => "#{$placement}/8", 'inline' => true],
-                ['name' => 'Niveau', 'value' => (string) data_get($participant, 'level', 0), 'inline' => true],
-                ['name' => 'Degats', 'value' => (string) data_get($participant, 'total_damage_to_players', 0), 'inline' => true],
-                ['name' => 'Eliminations', 'value' => (string) data_get($participant, 'players_eliminated', 0), 'inline' => true],
-                ['name' => 'Dernier round', 'value' => (string) data_get($participant, 'last_round', 0), 'inline' => true],
+                ['name' => 'Level', 'value' => (string) data_get($participant, 'level', 0), 'inline' => true],
+                ['name' => 'Damages', 'value' => (string) data_get($participant, 'total_damage_to_players', 0), 'inline' => true],
+                ['name' => 'Kills', 'value' => (string) data_get($participant, 'players_eliminated', 0), 'inline' => true],
+                ['name' => 'Last round', 'value' => (string) data_get($participant, 'last_round', 0), 'inline' => true],
                 ['name' => 'Traits', 'value' => $traits, 'inline' => false],
-                ['name' => 'Compo', 'value' => $units, 'inline' => false],
+                ['name' => 'Comp', 'value' => $units, 'inline' => false],
             ],
         ];
     }
@@ -157,7 +157,7 @@ class MatchSummaryService
         $participant = collect($participants)->firstWhere('puuid', $puuid);
 
         if ($participant === null) {
-            throw new RuntimeException('Impossible de retrouver le joueur dans les details du match.');
+            throw new RuntimeException('The player cannot be found in the match details.');
         }
 
         return $participant;
@@ -200,7 +200,7 @@ class MatchSummaryService
             ))
             ->implode(', ');
 
-        return $formatted !== '' ? $formatted : 'Aucun trait marquant';
+        return $formatted !== '' ? $formatted : 'No distinctive traits';
     }
 
     /**
@@ -217,11 +217,11 @@ class MatchSummaryService
             ->take(4)
             ->map(fn (array $unit) => sprintf(
                 '%s %s',
-                Str::headline(str_replace('_', ' ', (string) data_get($unit, 'character_id', 'Unite'))),
+                Str::headline(str_replace('_', ' ', (string) data_get($unit, 'character_id', 'Unit'))),
                 str_repeat('*', max((int) data_get($unit, 'tier', 1), 1)),
             ))
             ->implode(', ');
 
-        return $formatted !== '' ? $formatted : 'Compo indisponible';
+        return $formatted !== '' ? $formatted : 'Unavailable comp';
     }
 }
