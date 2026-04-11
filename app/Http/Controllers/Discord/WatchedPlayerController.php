@@ -14,6 +14,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
 use RuntimeException;
 
 class WatchedPlayerController extends Controller
@@ -56,8 +57,12 @@ class WatchedPlayerController extends Controller
             'is_active' => $payload['is_active'],
         ]);
 
-        return to_route('discord.servers.show', $discordServer)
-            ->with('status', 'Player added to monitoring.');
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Player added to monitoring.',
+        ]);
+
+        return to_route('discord.servers.show', $discordServer);
     }
 
     public function update(
@@ -98,8 +103,12 @@ class WatchedPlayerController extends Controller
             'is_active' => $payload['is_active'],
         ])->save();
 
-        return to_route('discord.servers.show', $discordServer)
-            ->with('status', 'Monitored player updated.');
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Monitored player updated.',
+        ]);
+
+        return to_route('discord.servers.show', $discordServer);
     }
 
     public function destroy(
@@ -111,8 +120,12 @@ class WatchedPlayerController extends Controller
 
         $watchedPlayer->delete();
 
-        return to_route('discord.servers.show', $discordServer)
-            ->with('status', 'Monitored player removed.');
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Monitored player removed.',
+        ]);
+
+        return to_route('discord.servers.show', $discordServer);
     }
 
     /**
