@@ -8,6 +8,7 @@ use App\Services\Discord\DiscordService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Inertia\Inertia;
 use RuntimeException;
 
 class DiscordInstallController extends Controller
@@ -15,8 +16,12 @@ class DiscordInstallController extends Controller
     public function redirect(Request $request, DiscordService $discord): RedirectResponse
     {
         if (! $discord->isConfigured()) {
-            return to_route('discord.index')
-                ->with('error', 'Configure DISCORD_CLIENT_ID, DISCORD_REDIRECT_URI and DISCORD_BOT_TOKEN environment variables to enable Discord integration.');
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => 'Configure DISCORD_CLIENT_ID, DISCORD_REDIRECT_URI and DISCORD_BOT_TOKEN environment variables to enable Discord integration.',
+            ]);
+            
+            return to_route('discord.index');
         }
 
         $state = Str::random(40);
@@ -32,45 +37,38 @@ class DiscordInstallController extends Controller
     public function callback(Request $request, DiscordService $discord): RedirectResponse
     {
         if ($request->filled('error')) {
-            return to_route('discord.index')
-                ->with('error', 'The installation of the Discord bot has been cancelled.');
+            return $this->redirectWithToast('error', 'The installation of the Discord bot has been cancelled.');
         }
 
         $expectedState = (string) $request->session()->pull('discord.install_state');
         $receivedState = (string) $request->query('state', '');
 
         if ($expectedState === '' || ! hash_equals($expectedState, $receivedState)) {
-            return to_route('discord.index')
-                ->with('error', 'The Discord OAuth response is invalid.');
+            return $this->redirectWithToast('error', 'The Discord OAuth response is invalid.');
         }
 
         $guildId = (string) $request->query('guild_id', '');
 
         if ($guildId === '') {
-            return to_route('discord.index')
-                ->with('error', 'Discord did not return any servers to sync.');
+            return $this->redirectWithToast('error', 'Discord did not return any servers to sync.');
         }
 
         try {
             $guild = $discord->installedGuild($guildId);
         } catch (RuntimeException $exception) {
-            return to_route('discord.index')
-                ->with('error', $exception->getMessage());
+            return $this->redirectWithToast('error', $exception->getMessage());
         }
 
         if (! $guild['bot_installed']) {
-            return to_route('discord.index')
-                ->with('error', 'The Discord bot cannot be found on this server.');
+            return $this->redirectWithToast('error', 'The Discord bot cannot be found on this server.');
         }
 
         if ($guild['sync_error'] !== null) {
-            return to_route('discord.index')
-                ->with('error', $guild['sync_error']);
+            return $this->redirectWithToast('error', $guild['sync_error']);
         }
 
         if ($guild['channels'] === []) {
-            return to_route('discord.index')
-                ->with('error', 'No usable text chat room was found on this server.');
+            return $this->redirectWithToast('error', 'No usable text chat room was found on this server.');
         }
 
         $claimedElsewhere = DiscordServer::query()
@@ -79,8 +77,7 @@ class DiscordInstallController extends Controller
             ->exists();
 
         if ($claimedElsewhere) {
-            return to_route('discord.index')
-                ->with('error', 'This Discord server is already linked to another account.');
+            return $this->redirectWithToast('error', 'This Discord server is already linked to another account.');
         }
 
         $existingServer = DiscordServer::query()
@@ -106,7 +103,16 @@ class DiscordInstallController extends Controller
             ],
         );
 
-        return to_route('discord.index')
-            ->with('status', 'Discord server linked successfully. Check the destination channel if necessary.');
+        return $this->redirectWithToast('success', 'Discord server linked successfully. Check the destination channel if necessary.');
+    }
+
+    private function redirectWithToast(string $type, string $message): RedirectResponse
+    {
+        Inertia::flash('toast', [
+            'type' => $type,
+            'message' => $message,
+        ]);
+
+        return to_route('discord.index');
     }
 }
