@@ -158,8 +158,12 @@ class DiscordServerController extends Controller
             'settings_synced_at' => now(),
         ])->save();
 
-        return to_route('discord.index')
-            ->with('status', 'Discord server updated.');
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Discord server updated.',
+        ]);
+
+        return to_route('discord.index');
     }
 
     public function destroy(Request $request, DiscordServer $discordServer): RedirectResponse
@@ -168,8 +172,12 @@ class DiscordServerController extends Controller
 
         $discordServer->delete();
 
-        return to_route('discord.index')
-            ->with('status', 'Discord server deleted.');
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Discord server deleted.',
+        ]);
+
+        return to_route('discord.index');
     }
 
     /**
