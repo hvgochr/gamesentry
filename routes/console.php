@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\MatchNotification;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -10,4 +11,10 @@ Artisan::command('inspire', function () {
 
 Schedule::command('gamesentry:dispatch-watched-player-polls')
     ->everyMinute()
+    ->withoutOverlapping();
+
+Schedule::command('model:prune', [
+    '--model' => [MatchNotification::class],
+])
+    ->daily()
     ->withoutOverlapping();
