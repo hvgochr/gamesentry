@@ -6,7 +6,9 @@ use App\Enums\Game;
 use App\Enums\MatchNotificationStatus;
 use Database\Factories\MatchNotificationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -26,6 +28,7 @@ class MatchNotification extends Model
 {
     /** @use HasFactory<MatchNotificationFactory> */
     use HasFactory;
+    use MassPrunable;
 
     protected $attributes = [
         'status' => MatchNotificationStatus::Pending->value,
@@ -50,5 +53,20 @@ class MatchNotification extends Model
     public function discordServer(): BelongsTo
     {
         return $this->belongsTo(DiscordServer::class);
+    }
+
+    public function prunable(): Builder
+    {
+        return static::query()
+            ->whereIn('status', [
+                MatchNotificationStatus::Sent->value,
+                MatchNotificationStatus::Failed->value,
+            ])
+            ->where('created_at', '<=', now()->subDays($this->retentionDays()));
+    }
+
+    private function retentionDays(): int
+    {
+        return max((int) config('gamesentry.notifications.match_notification_retention_days', 30), 1);
     }
 }
