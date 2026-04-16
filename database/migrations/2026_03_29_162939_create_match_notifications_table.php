@@ -22,12 +22,15 @@ return new class extends Migration
             $table->json('match_payload')->nullable();
             $table->json('discord_embed_payload')->nullable();
             $table->text('roast_text')->nullable();
+            $table->string('discord_delivery_nonce', 64)->nullable();
+            $table->string('discord_message_id', 32)->nullable();
             $table->string('status', 16)->default('pending');
             $table->text('failure_reason')->nullable();
             $table->timestamp('delivered_at')->nullable();
             $table->timestamps();
 
             $table->unique(['watched_player_id', 'riot_match_id']);
+            $table->unique('discord_delivery_nonce');
             $table->index(['status', 'created_at']);
         });
     }
