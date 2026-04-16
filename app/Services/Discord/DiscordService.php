@@ -1,8 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Discord;
 
+use App\Services\Discord\Exceptions\DiscordDuplicateNonceException;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
@@ -130,7 +134,8 @@ class DiscordService
         string $discordUserId,
         string $roast,
         array $embed,
-    ): void {
+        string $nonce,
+    ): ?string {
         $this->ensureConfigured();
 
         $response = $this->botRequest()->post("/channels/{$channelId}/messages", [
@@ -139,11 +144,21 @@ class DiscordService
                 'users' => [$discordUserId],
             ],
             'embeds' => [$embed],
+            'nonce' => $nonce,
+            'enforce_nonce' => true,
         ]);
+
+        if ($this->isDuplicateNonceResponse($response)) {
+            throw new DiscordDuplicateNonceException;
+        }
 
         if ($response->failed()) {
             throw new RuntimeException('Unable to send Discord match notification.');
         }
+
+        $messageId = $response->json('id');
+
+        return is_string($messageId) && $messageId !== '' ? $messageId : null;
     }
 
     public function guildIconUrl(string $guildId, ?string $iconHash): ?string
@@ -166,6 +181,27 @@ class DiscordService
             ->withHeaders([
                 'Authorization' => 'Bot '.config('services.discord.bot_token'),
             ]);
+    }
+
+    private function isDuplicateNonceResponse(Response $response): bool
+    {
+        if ($response->status() !== 400 || (int) $response->json('code') !== 50035) {
+            return false;
+        }
+
+        $nonceErrors = $response->json('errors.nonce._errors', []);
+
+        if (! is_array($nonceErrors)) {
+            return false;
+        }
+
+        foreach ($nonceErrors as $error) {
+            if (data_get($error, 'code') === 'ENFORCE_UNIQUE') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function ensureConfigured(): void
