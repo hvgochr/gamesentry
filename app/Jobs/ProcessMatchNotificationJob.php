@@ -6,7 +6,9 @@ namespace App\Jobs;
 
 use App\Enums\MatchNotificationStatus;
 use App\Models\MatchNotification;
+use App\Models\WatchedPlayer;
 use App\Services\Discord\DiscordService;
+use App\Services\Discord\Exceptions\DiscordDuplicateNonceException;
 use App\Services\Groq\GroqService;
 use App\Services\Riot\Exceptions\RiotRateLimitException;
 use App\Services\Riot\MatchSummaryService;
@@ -18,6 +20,7 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Throwable;
 
 class ProcessMatchNotificationJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
@@ -75,36 +78,32 @@ class ProcessMatchNotificationJob implements ShouldBeUniqueUntilProcessing, Shou
             return;
         }
 
-        try {
-            $match = $riot->match(
-                $watchedPlayer->game,
-                $watchedPlayer->routing_region,
-                $notification->riot_match_id,
-            );
-        } catch (RiotRateLimitException $exception) {
-            $polling->recordRateLimitHit($watchedPlayer->game, $exception->retryAfterSeconds());
-
-            throw $exception;
-        }
-
-        $payload = $summary->normalize($watchedPlayer, $match);
-        $roast = $groq->generateRoast($payload);
-        $embed = $summary->discordEmbed($payload);
-
-        $discord->sendMatchNotification(
-            $discordServer->discord_channel_id,
-            $watchedPlayer->discord_user_id,
-            $roast,
-            $embed,
+        $delivery = $this->prepareDelivery(
+            $notification,
+            $watchedPlayer,
+            $riot,
+            $polling,
+            $summary,
+            $groq,
         );
 
+        try {
+            $messageId = $discord->sendMatchNotification(
+                $discordServer->discord_channel_id,
+                $watchedPlayer->discord_user_id,
+                $delivery['roast'],
+                $delivery['embed'],
+                $delivery['nonce'],
+            );
+        } catch (DiscordDuplicateNonceException) {
+            $messageId = $notification->discord_message_id;
+        }
+
         $notification->forceFill([
-            'match_payload' => $payload,
-            'discord_embed_payload' => $embed,
-            'roast_text' => $roast,
             'status' => MatchNotificationStatus::Sent,
             'failure_reason' => null,
-            'delivered_at' => now(),
+            'delivered_at' => $notification->delivered_at ?? now(),
+            'discord_message_id' => $messageId ?? $notification->discord_message_id,
         ])->save();
     }
 
@@ -121,7 +120,7 @@ class ProcessMatchNotificationJob implements ShouldBeUniqueUntilProcessing, Shou
 
         $notification = MatchNotification::query()->find($this->matchNotificationId);
 
-        if ($notification === null) {
+        if ($notification === null || $notification->status === MatchNotificationStatus::Sent) {
             return;
         }
 
@@ -129,5 +128,70 @@ class ProcessMatchNotificationJob implements ShouldBeUniqueUntilProcessing, Shou
             'status' => MatchNotificationStatus::Failed,
             'failure_reason' => $exception->getMessage(),
         ])->save();
+    }
+
+    /**
+     * @return array{
+     *     embed: array<string, mixed>,
+     *     nonce: string,
+     *     payload: array<string, mixed>,
+     *     roast: string
+     * }
+     */
+    private function prepareDelivery(
+        MatchNotification $notification,
+        WatchedPlayer $watchedPlayer,
+        RiotApiService $riot,
+        RiotPollingService $polling,
+        MatchSummaryService $summary,
+        GroqService $groq,
+    ): array {
+        $payload = $notification->match_payload;
+        $embed = $notification->discord_embed_payload;
+        $roast = $notification->roast_text;
+        $nonce = $notification->discord_delivery_nonce ?: (string) Str::uuid();
+
+        if (! is_array($payload) || ! is_array($embed) || ! is_string($roast) || $roast === '') {
+            try {
+                $match = $riot->match(
+                    $watchedPlayer->game,
+                    $watchedPlayer->routing_region,
+                    $notification->riot_match_id,
+                );
+            } catch (RiotRateLimitException $exception) {
+                $polling->recordRateLimitHit($watchedPlayer->game, $exception->retryAfterSeconds());
+
+                throw $exception;
+            }
+
+            $payload = $summary->normalize($watchedPlayer, $match);
+            $roast = $groq->generateRoast($payload);
+            $embed = $summary->discordEmbed($payload);
+        }
+
+        $notification->forceFill([
+            'match_payload' => $payload,
+            'discord_embed_payload' => $embed,
+            'roast_text' => $roast,
+            'discord_delivery_nonce' => $nonce,
+            'failure_reason' => null,
+        ]);
+
+        if ($notification->isDirty([
+            'match_payload',
+            'discord_embed_payload',
+            'roast_text',
+            'discord_delivery_nonce',
+            'failure_reason',
+        ])) {
+            $notification->save();
+        }
+
+        return [
+            'embed' => $embed,
+            'nonce' => $nonce,
+            'payload' => $payload,
+            'roast' => $roast,
+        ];
     }
 }
