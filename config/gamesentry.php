@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'notifications' => [
+        'match_notification_retention_days' => (int) env('GAMESENTRY_MATCH_NOTIFICATION_RETENTION_DAYS', 30),
+    ],
+
     'polling' => [
         'dispatch_budget_per_minute' => [
             'lol' => (int) env('GAMESENTRY_LOL_DISPATCH_BUDGET_PER_MINUTE', 15),
