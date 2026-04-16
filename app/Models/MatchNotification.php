@@ -20,6 +20,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'match_payload',
     'discord_embed_payload',
     'roast_text',
+    'discord_delivery_nonce',
+    'discord_message_id',
     'status',
     'failure_reason',
     'delivered_at',
