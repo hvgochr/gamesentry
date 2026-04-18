@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Services\Groq;
 
 use Illuminate\Http\Client\PendingRequest;
