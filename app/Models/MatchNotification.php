@@ -30,6 +30,7 @@ class MatchNotification extends Model
 {
     /** @use HasFactory<MatchNotificationFactory> */
     use HasFactory;
+
     use MassPrunable;
 
     protected $attributes = [

@@ -20,7 +20,7 @@ class DiscordInstallController extends Controller
                 'type' => 'error',
                 'message' => 'Configure DISCORD_CLIENT_ID, DISCORD_REDIRECT_URI and DISCORD_BOT_TOKEN environment variables to enable Discord integration.',
             ]);
-            
+
             return to_route('discord.index');
         }
 
