@@ -5,7 +5,14 @@ import DiscordServerController from '@/actions/App/Http/Controllers/Discord/Disc
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { index } from '@/routes/discord';
 import { show } from '@/routes/discord/servers';
@@ -72,15 +79,18 @@ export default function DiscordIndex({
                         </CardTitle>
                         <CardDescription>
                             Click on the button, choose a server in Discord,
-                            then you'll be redirected here. Gamesentry will automatically
-                            link the server to a default text channel, which you can
-                            change later.
+                            then you'll be redirected here. Gamesentry will
+                            automatically link the server to a default text
+                            channel, which you can change later.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3 text-sm text-muted-foreground">
                         <p>1. Open Discord by clicking the button below.</p>
                         <p>2. Select the server on which to install the bot.</p>
-                        <p>3. You'll be redirected here to check the chat room and manage players.</p>
+                        <p>
+                            3. You'll be redirected here to check the chat room
+                            and manage players.
+                        </p>
                     </CardContent>
                     <CardFooter>
                         <Button asChild disabled={!discordConfigured}>
@@ -96,8 +106,8 @@ export default function DiscordIndex({
                         <CardTitle>Connected servers</CardTitle>
                         <CardDescription>
                             Update the destination room, reinstall the bot if
-                            necessary, or remove a server that no longer needs to be
-                            monitored.
+                            necessary, or remove a server that no longer needs
+                            to be monitored.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -121,7 +131,9 @@ export default function DiscordIndex({
                                                 />
                                             ) : (
                                                 <div className="flex size-12 items-center justify-center rounded-lg bg-muted text-sm font-semibold">
-                                                    {server.name.slice(0, 2).toUpperCase()}
+                                                    {server.name
+                                                        .slice(0, 2)
+                                                        .toUpperCase()}
                                                 </div>
                                             )}
 
@@ -131,10 +143,14 @@ export default function DiscordIndex({
                                                 </p>
                                                 <p className="text-sm text-muted-foreground">
                                                     Current channel : #
-                                                    {server.discord_channel_name}
+                                                    {
+                                                        server.discord_channel_name
+                                                    }
                                                 </p>
                                                 <p className="text-xs text-muted-foreground">
-                                                    {server.watched_players_count}{' '}
+                                                    {
+                                                        server.watched_players_count
+                                                    }{' '}
                                                     tracked player(s).
                                                 </p>
                                             </div>
@@ -163,9 +179,11 @@ export default function DiscordIndex({
 
                                     <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                                         <Form
-                                            {...DiscordServerController.update.form({
-                                                discordServer: server.id,
-                                            })}
+                                            {...DiscordServerController.update.form(
+                                                {
+                                                    discordServer: server.id,
+                                                },
+                                            )}
                                             options={{ preserveScroll: true }}
                                             className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-end"
                                         >
@@ -183,29 +201,41 @@ export default function DiscordIndex({
                                                             defaultValue={
                                                                 server.discord_channel_id
                                                             }
-                                                            className="border-input focus-visible:border-ring focus-visible:ring-ring/50 h-9 rounded-md border bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:ring-[3px]"
+                                                            className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                                             disabled={
                                                                 processing ||
                                                                 !server.bot_installed ||
                                                                 server.sync_error !==
                                                                     null ||
-                                                                server.channels.length ===
+                                                                server.channels
+                                                                    .length ===
                                                                     0
                                                             }
                                                         >
-                                                            {server.channels.length ===
+                                                            {server.channels
+                                                                .length ===
                                                             0 ? (
                                                                 <option value="">
-                                                                    No channel available
+                                                                    No channel
+                                                                    available
                                                                 </option>
                                                             ) : (
                                                                 server.channels.map(
-                                                                    (channel) => (
+                                                                    (
+                                                                        channel,
+                                                                    ) => (
                                                                         <option
-                                                                            key={channel.id}
-                                                                            value={channel.id}
+                                                                            key={
+                                                                                channel.id
+                                                                            }
+                                                                            value={
+                                                                                channel.id
+                                                                            }
                                                                         >
-                                                                            #{channel.name}
+                                                                            #
+                                                                            {
+                                                                                channel.name
+                                                                            }
                                                                         </option>
                                                                     ),
                                                                 )
@@ -226,7 +256,8 @@ export default function DiscordIndex({
                                                             !server.bot_installed ||
                                                             server.sync_error !==
                                                                 null ||
-                                                            server.channels.length === 0
+                                                            server.channels
+                                                                .length === 0
                                                         }
                                                     >
                                                         Update
@@ -239,7 +270,8 @@ export default function DiscordIndex({
                                             <Button asChild variant="outline">
                                                 <Link
                                                     href={show({
-                                                        discordServer: server.id,
+                                                        discordServer:
+                                                            server.id,
                                                     })}
                                                 >
                                                     <Users className="size-4" />
@@ -248,12 +280,16 @@ export default function DiscordIndex({
                                             </Button>
 
                                             {!server.bot_installed && (
-                                                <Button asChild variant="outline">
+                                                <Button
+                                                    asChild
+                                                    variant="outline"
+                                                >
                                                     <a
                                                         href={DiscordInstallController.redirect.url(
                                                             {
                                                                 query: {
-                                                                    guild_id: server.discord_guild_id,
+                                                                    guild_id:
+                                                                        server.discord_guild_id,
                                                                 },
                                                             },
                                                         )}
@@ -265,10 +301,15 @@ export default function DiscordIndex({
                                             )}
 
                                             <Form
-                                                {...DiscordServerController.destroy.form({
-                                                    discordServer: server.id,
-                                                })}
-                                                options={{ preserveScroll: true }}
+                                                {...DiscordServerController.destroy.form(
+                                                    {
+                                                        discordServer:
+                                                            server.id,
+                                                    },
+                                                )}
+                                                options={{
+                                                    preserveScroll: true,
+                                                }}
                                             >
                                                 {({ processing }) => (
                                                     <Button

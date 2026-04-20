@@ -566,7 +566,8 @@ export default function DiscordServerShow({
                     <CardContent className="space-y-3">
                         {recentNotifications.length === 0 ? (
                             <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                                There are currently no match notifications for this server.
+                                There are currently no match notifications for
+                                this server.
                             </div>
                         ) : (
                             recentNotifications.map((notification) => (

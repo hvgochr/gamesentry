@@ -1,6 +1,12 @@
 import { Head } from '@inertiajs/react';
 import Heading from '@/components/heading';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { dashboard } from '@/routes';
 
 type Stats = {
@@ -32,7 +38,8 @@ type Props = {
 
 const statusStyles: Record<string, string> = {
     sent: 'border-green-200 bg-green-50 text-green-700 dark:border-green-950 dark:bg-green-950/40 dark:text-green-300',
-    pending: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-950 dark:bg-amber-950/40 dark:text-amber-300',
+    pending:
+        'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-950 dark:bg-amber-950/40 dark:text-amber-300',
     failed: 'border-red-200 bg-red-50 text-red-700 dark:border-red-950 dark:bg-red-950/40 dark:text-red-300',
 };
 
@@ -59,35 +66,44 @@ export default function Dashboard({ stats, recentNotifications }: Props) {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="text-sm text-muted-foreground">
-                            {stats.watched_players_count} player(s) currently tracked across all servers.
+                            {stats.watched_players_count} player(s) currently
+                            tracked across all servers.
                         </CardContent>
                     </Card>
 
                     <Card>
                         <CardHeader className="pb-2">
                             <CardDescription>Tracked players</CardDescription>
-                            <CardTitle className="text-2xl">{stats.active_watched_players_count}</CardTitle>
+                            <CardTitle className="text-2xl">
+                                {stats.active_watched_players_count}
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="text-sm text-muted-foreground">
-                            {stats.active_watched_players_count} active player(s) being tracked.
+                            {stats.active_watched_players_count} active
+                            player(s) being tracked.
                         </CardContent>
                     </Card>
 
                     <Card>
                         <CardHeader className="pb-2">
-                            <CardDescription>Notifications sent</CardDescription>
+                            <CardDescription>
+                                Notifications sent
+                            </CardDescription>
                             <CardTitle className="text-2xl">
                                 {stats.sent_notifications_count}
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="text-sm text-muted-foreground">
-                            {stats.pending_notifications_count} notification(s) pending delivery.
+                            {stats.pending_notifications_count} notification(s)
+                            pending delivery.
                         </CardContent>
                     </Card>
 
                     <Card>
                         <CardHeader className="pb-2">
-                            <CardDescription>Notifications failed</CardDescription>
+                            <CardDescription>
+                                Notifications failed
+                            </CardDescription>
                             <CardTitle className="text-2xl">
                                 {stats.failed_notifications_count}
                             </CardTitle>
@@ -102,7 +118,8 @@ export default function Dashboard({ stats, recentNotifications }: Props) {
                     <CardHeader>
                         <CardTitle>Last notifications</CardTitle>
                         <CardDescription>
-                            Recent history of messages composed or sent on your servers.
+                            Recent history of messages composed or sent on your
+                            servers.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
@@ -119,12 +136,15 @@ export default function Dashboard({ stats, recentNotifications }: Props) {
                                     <div className="flex flex-wrap items-start justify-between gap-3">
                                         <div>
                                             <p className="font-medium">
-                                                {notification.player_name ?? 'Joueur inconnu'}
+                                                {notification.player_name ??
+                                                    'Joueur inconnu'}
                                             </p>
                                             <p className="text-sm text-muted-foreground">
-                                                {notification.server_name ?? 'Serveur'} -{' '}
-                                                {notification.game.toUpperCase()} -{' '}
-                                                {notification.riot_match_id}
+                                                {notification.server_name ??
+                                                    'Serveur'}{' '}
+                                                -{' '}
+                                                {notification.game.toUpperCase()}{' '}
+                                                - {notification.riot_match_id}
                                             </p>
                                         </div>
 
@@ -149,9 +169,14 @@ export default function Dashboard({ stats, recentNotifications }: Props) {
                                         )}
 
                                         <p className="text-xs text-muted-foreground">
-                                            Created at {formatDateTime(notification.created_at)} -
-                                            Delivered at{' '}
-                                            {formatDateTime(notification.delivered_at)}
+                                            Created at{' '}
+                                            {formatDateTime(
+                                                notification.created_at,
+                                            )}{' '}
+                                            - Delivered at{' '}
+                                            {formatDateTime(
+                                                notification.delivered_at,
+                                            )}
                                         </p>
                                     </div>
                                 </div>
