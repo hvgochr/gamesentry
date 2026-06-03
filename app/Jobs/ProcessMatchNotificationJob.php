@@ -147,7 +147,7 @@ class ProcessMatchNotificationJob implements ShouldBeUniqueUntilProcessing, Shou
         $payload = $notification->match_payload;
         $embed = $notification->discord_embed_payload;
         $roast = $notification->roast_text;
-        $nonce = $notification->discord_delivery_nonce ?: (string) Str::uuid();
+        $nonce = $notification->discord_delivery_nonce ?: Str::random(24);
 
         if (! is_array($payload) || ! is_array($embed) || ! is_string($roast) || $roast === '') {
             try {
