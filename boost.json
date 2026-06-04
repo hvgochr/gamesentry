@@ -1,15 +1,19 @@
 {
     "agents": [
-        "copilot"
+        "codex"
     ],
     "guidelines": true,
     "mcp": true,
     "nightwatch_mcp": false,
+    "packages": [
+        "laravel/fortify"
+    ],
     "sail": false,
     "skills": [
         "laravel-best-practices",
         "wayfinder-development",
         "inertia-react-development",
-        "tailwindcss-development"
+        "tailwindcss-development",
+        "fortify-development"
     ]
 }
