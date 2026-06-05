@@ -22,7 +22,7 @@ return new class extends Migration
             $table->json('match_payload')->nullable();
             $table->json('discord_embed_payload')->nullable();
             $table->text('roast_text')->nullable();
-            $table->string('discord_delivery_nonce', 64)->nullable();
+            $table->string('discord_delivery_nonce', 25)->nullable();
             $table->string('discord_message_id', 32)->nullable();
             $table->string('status', 16)->default('pending');
             $table->text('failure_reason')->nullable();
