@@ -1,11 +1,14 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/react-starter-kit",
+    "name": "hvgochr/gamesentry",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "Discord-powered Riot match tracking with AI-generated notifications.",
     "keywords": [
         "laravel",
-        "framework"
+        "inertia",
+        "discord",
+        "riot-games",
+        "notifications"
     ],
     "license": "MIT",
     "require": {
