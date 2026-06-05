@@ -5,7 +5,7 @@ use App\Http\Controllers\Discord\DiscordServerController;
 use App\Http\Controllers\Discord\WatchedPlayerController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::prefix('dashboard')->middleware(['auth', 'verified'])->group(function () {
     Route::get('discord', [DiscordServerController::class, 'index'])->name('discord.index');
     Route::get('discord/install', [DiscordInstallController::class, 'redirect'])->name('discord.install');
     Route::get('discord/install/callback', [DiscordInstallController::class, 'callback'])->name('discord.install.callback');
