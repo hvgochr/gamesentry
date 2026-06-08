@@ -163,7 +163,7 @@ class DiscordServerController extends Controller
             'message' => 'Discord server updated.',
         ]);
 
-        return to_route('discord.index');
+        return to_route('dashboard.discord.index');
     }
 
     public function destroy(Request $request, DiscordServer $discordServer): RedirectResponse
@@ -177,7 +177,7 @@ class DiscordServerController extends Controller
             'message' => 'Discord server deleted.',
         ]);
 
-        return to_route('discord.index');
+        return to_route('dashboard.discord.index');
     }
 
     /**

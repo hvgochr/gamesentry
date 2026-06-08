@@ -21,7 +21,7 @@ class DiscordInstallController extends Controller
                 'message' => 'Configure DISCORD_CLIENT_ID, DISCORD_REDIRECT_URI and DISCORD_BOT_TOKEN environment variables to enable Discord integration.',
             ]);
 
-            return to_route('discord.index');
+            return to_route('dashboard.discord.index');
         }
 
         $state = Str::random(40);
@@ -113,6 +113,6 @@ class DiscordInstallController extends Controller
             'message' => $message,
         ]);
 
-        return to_route('discord.index');
+        return to_route('dashboard.discord.index');
     }
 }

@@ -7,7 +7,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { dashboard } from '@/routes';
+import { index as dashboard } from '@/routes/dashboard';
 
 type Stats = {
     servers_count: number;

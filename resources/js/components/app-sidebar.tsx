@@ -13,8 +13,8 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
-import { index as discord } from '@/routes/discord';
+import { index as dashboard } from '@/routes/dashboard';
+import { index as discord } from '@/routes/dashboard/discord';
 import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [

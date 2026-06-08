@@ -14,8 +14,8 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { index } from '@/routes/discord';
-import { show } from '@/routes/discord/servers';
+import { index } from '@/routes/dashboard/discord';
+import { show } from '@/routes/dashboard/discord/servers';
 
 type GuildChannel = {
     id: string;

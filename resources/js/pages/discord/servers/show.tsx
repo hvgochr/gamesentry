@@ -12,7 +12,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { index as discordIndex } from '@/routes/discord';
+import { index as discordIndex } from '@/routes/dashboard/discord';
 
 type Option = {
     value: string;

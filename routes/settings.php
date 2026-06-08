@@ -4,23 +4,33 @@ use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('dashboard')->group(function () {
-    Route::middleware(['auth'])->group(function () {
-        Route::redirect('settings', '/dashboard/settings/profile');
+Route::prefix('dashboard')->name('dashboard.')->group(function () {
+    Route::prefix('settings')->name('settings.')->group(function () {
+        Route::middleware(['auth'])->group(function () {
+            Route::redirect('/', '/dashboard/settings/profile')->name('index');
 
-        Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-        Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
-    });
+            Route::prefix('profile')->name('profile.')->group(function () {
+                Route::get('/', [ProfileController::class, 'edit'])->name('edit');
+                Route::patch('/', [ProfileController::class, 'update'])->name('update');
+            });
+        });
 
-    Route::middleware(['auth', 'verified'])->group(function () {
-        Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+        Route::middleware(['auth', 'verified'])->group(function () {
+            Route::delete('profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-        Route::get('settings/security', [SecurityController::class, 'edit'])->name('security.edit');
+            Route::prefix('security')->name('security.')->group(function () {
+                Route::get('/', [SecurityController::class, 'edit'])->name('edit');
+            });
 
-        Route::put('settings/password', [SecurityController::class, 'update'])
-            ->middleware('throttle:6,1')
-            ->name('user-password.update');
+            Route::prefix('password')->name('password.')->group(function () {
+                Route::put('/', [SecurityController::class, 'update'])
+                    ->middleware('throttle:6,1')
+                    ->name('update');
+            });
 
-        Route::inertia('settings/appearance', 'settings/appearance')->name('appearance.edit');
+            Route::prefix('appearance')->name('appearance.')->group(function () {
+                Route::inertia('/', 'settings/appearance')->name('edit');
+            });
+        });
     });
 });

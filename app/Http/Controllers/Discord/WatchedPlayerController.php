@@ -62,7 +62,7 @@ class WatchedPlayerController extends Controller
             'message' => 'Player added to monitoring.',
         ]);
 
-        return to_route('discord.servers.show', $discordServer);
+        return to_route('dashboard.discord.servers.show', $discordServer);
     }
 
     public function update(
@@ -108,7 +108,7 @@ class WatchedPlayerController extends Controller
             'message' => 'Monitored player updated.',
         ]);
 
-        return to_route('discord.servers.show', $discordServer);
+        return to_route('dashboard.discord.servers.show', $discordServer);
     }
 
     public function destroy(
@@ -125,7 +125,7 @@ class WatchedPlayerController extends Controller
             'message' => 'Monitored player removed.',
         ]);
 
-        return to_route('discord.servers.show', $discordServer);
+        return to_route('dashboard.discord.servers.show', $discordServer);
     }
 
     /**

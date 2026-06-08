@@ -5,21 +5,26 @@ use App\Http\Controllers\Discord\DiscordServerController;
 use App\Http\Controllers\Discord\WatchedPlayerController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('dashboard')->middleware(['auth', 'verified'])->group(function () {
-    Route::get('discord', [DiscordServerController::class, 'index'])->name('discord.index');
-    Route::get('discord/install', [DiscordInstallController::class, 'redirect'])->name('discord.install');
-    Route::get('discord/install/callback', [DiscordInstallController::class, 'callback'])->name('discord.install.callback');
+Route::prefix('dashboard')
+    ->name('dashboard.')
+    ->middleware(['auth', 'verified'])
+    ->group(function () {
+        Route::prefix('discord')->name('discord.')->group(function () {
+            Route::get('/', [DiscordServerController::class, 'index'])->name('index');
+            Route::get('install', [DiscordInstallController::class, 'redirect'])->name('install');
+            Route::get('install/callback', [DiscordInstallController::class, 'callback'])->name('install.callback');
 
-    Route::scopeBindings()->group(function () {
-        Route::get('discord/servers/{discordServer}', [DiscordServerController::class, 'show'])->name('discord.servers.show');
-        Route::patch('discord/servers/{discordServer}', [DiscordServerController::class, 'update'])->name('discord.servers.update');
-        Route::delete('discord/servers/{discordServer}', [DiscordServerController::class, 'destroy'])->name('discord.servers.destroy');
+            Route::scopeBindings()->group(function () {
+                Route::get('servers/{discordServer}', [DiscordServerController::class, 'show'])->name('servers.show');
+                Route::patch('servers/{discordServer}', [DiscordServerController::class, 'update'])->name('servers.update');
+                Route::delete('servers/{discordServer}', [DiscordServerController::class, 'destroy'])->name('servers.destroy');
 
-        Route::post('discord/servers/{discordServer}/watched-players', [WatchedPlayerController::class, 'store'])
-            ->name('discord.servers.watched-players.store');
-        Route::patch('discord/servers/{discordServer}/watched-players/{watchedPlayer}', [WatchedPlayerController::class, 'update'])
-            ->name('discord.servers.watched-players.update');
-        Route::delete('discord/servers/{discordServer}/watched-players/{watchedPlayer}', [WatchedPlayerController::class, 'destroy'])
-            ->name('discord.servers.watched-players.destroy');
+                Route::post('servers/{discordServer}/watched-players', [WatchedPlayerController::class, 'store'])
+                    ->name('servers.watched-players.store');
+                Route::patch('servers/{discordServer}/watched-players/{watchedPlayer}', [WatchedPlayerController::class, 'update'])
+                    ->name('servers.watched-players.update');
+                Route::delete('servers/{discordServer}/watched-players/{watchedPlayer}', [WatchedPlayerController::class, 'destroy'])
+                    ->name('servers.watched-players.destroy');
+            });
+        });
     });
-});
