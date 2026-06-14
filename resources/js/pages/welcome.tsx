@@ -24,8 +24,12 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { login, register } from '@/routes';
+import { login } from '@/routes';
+/* @chisel-registration */
+import { register } from '@/routes';
+/* @end-chisel-registration */
 import { index as dashboard } from '@/routes/dashboard';
+import type { Auth } from '@/types';
 
 type Game = {
     name: string;
@@ -47,6 +51,10 @@ type Plan = {
     description: string;
     features: string[];
     highlighted?: boolean;
+};
+
+type PageProps = {
+    auth: Auth;
 };
 
 const games: Game[] = [
@@ -153,12 +161,8 @@ function SectionHeading({
     );
 }
 
-export default function Welcome({
-    canRegister = true,
-}: {
-    canRegister?: boolean;
-}) {
-    const { auth } = usePage().props;
+export default function Welcome() {
+    const { auth } = usePage<PageProps>().props;
 
     return (
         <>
@@ -214,13 +218,13 @@ export default function Welcome({
                                     >
                                         <Link href={login()}>Log in</Link>
                                     </Button>
-                                    {canRegister && (
-                                        <Button asChild>
-                                            <Link href={register()}>
-                                                Get started
-                                            </Link>
-                                        </Button>
-                                    )}
+                                    {/* @chisel-registration */}
+                                    <Button asChild>
+                                        <Link href={register()}>
+                                            Get started
+                                        </Link>
+                                    </Button>
+                                    {/* @end-chisel-registration */}
                                 </>
                             )}
                         </div>
@@ -245,8 +249,8 @@ export default function Welcome({
 
                             <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
                                 GameSentry monitors League of Legends and TFT
-                                matches, generates AI roasts, and posts
-                                them in your Discord server.
+                                matches, generates AI roasts, and posts them in
+                                your Discord server.
                             </p>
 
                             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -258,14 +262,16 @@ export default function Welcome({
                                         </Link>
                                     </Button>
                                 ) : (
-                                    canRegister && (
+                                    <>
+                                        {/* @chisel-registration */}
                                         <Button asChild size="lg">
                                             <Link href={register()}>
                                                 Start tracking
                                                 <ChevronRight className="size-4" />
                                             </Link>
                                         </Button>
-                                    )
+                                        {/* @end-chisel-registration */}
+                                    </>
                                 )}
                                 <Button asChild size="lg" variant="outline">
                                     <a href="#setup">How it works</a>

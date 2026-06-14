@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
+use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('dashboard')->name('dashboard.')->group(function () {
@@ -19,7 +20,9 @@ Route::prefix('dashboard')->name('dashboard.')->group(function () {
             Route::delete('profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
             Route::prefix('security')->name('security.')->group(function () {
-                Route::get('/', [SecurityController::class, 'edit'])->name('edit');
+                Route::get('/', [SecurityController::class, 'edit'])
+                    ->middleware(RequirePassword::class)
+                    ->name('edit');
             });
 
             Route::prefix('password')->name('password.')->group(function () {

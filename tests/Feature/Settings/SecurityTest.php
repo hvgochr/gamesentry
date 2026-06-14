@@ -21,6 +21,9 @@ class SecurityTest extends TestCase
             'confirm' => true,
             'confirmPassword' => true,
         ]);
+        Features::passkeys([
+            'confirmPassword' => true,
+        ]);
 
         $user = User::factory()->create();
 
@@ -29,6 +32,8 @@ class SecurityTest extends TestCase
             ->get(route('dashboard.settings.security.edit'))
             ->assertInertia(fn (Assert $page) => $page
                 ->component('settings/security')
+                ->where('canManagePasskeys', true)
+                ->where('passkeys', [])
                 ->where('canManageTwoFactor', true)
                 ->where('twoFactorEnabled', false),
             );
@@ -51,25 +56,6 @@ class SecurityTest extends TestCase
         $response->assertRedirect(route('password.confirm'));
     }
 
-    public function test_security_page_does_not_require_password_confirmation_when_disabled()
-    {
-        $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
-
-        $user = User::factory()->create();
-
-        Features::twoFactorAuthentication([
-            'confirm' => true,
-            'confirmPassword' => false,
-        ]);
-
-        $this->actingAs($user)
-            ->get(route('dashboard.settings.security.edit'))
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('settings/security'),
-            );
-    }
-
     public function test_security_page_renders_without_two_factor_when_feature_is_disabled()
     {
         $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
@@ -79,10 +65,13 @@ class SecurityTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)
+            ->withSession(['auth.password_confirmed_at' => time()])
             ->get(route('dashboard.settings.security.edit'))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('settings/security')
+                ->where('canManagePasskeys', false)
+                ->where('passkeys', [])
                 ->where('canManageTwoFactor', false)
                 ->missing('twoFactorEnabled')
                 ->missing('requiresConfirmation'),
