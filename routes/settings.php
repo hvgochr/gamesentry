@@ -37,3 +37,10 @@ Route::prefix('dashboard')->name('dashboard.')->group(function () {
         });
     });
 });
+
+Route::get('.well-known/passkey-endpoints', function () {
+    return response()->json([
+        'enroll' => route('dashboard.settings.security.edit'),
+        'manage' => route('dashboard.settings.security.edit'),
+    ]);
+})->name('well-known.passkeys');
