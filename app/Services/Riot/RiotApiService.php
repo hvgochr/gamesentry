@@ -75,7 +75,11 @@ class RiotApiService
 
         $this->throwForFailedResponse($response, 'Unable to retrieve this player\'s recent matches.');
 
-        return $response->collect()->map(fn (mixed $matchId) => (string) $matchId)->all();
+        return array_values(
+            $response->collect()
+                ->map(fn (mixed $matchId) => (string) $matchId)
+                ->all(),
+        );
     }
 
     /**

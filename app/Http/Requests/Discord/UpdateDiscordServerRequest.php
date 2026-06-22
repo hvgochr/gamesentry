@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Discord;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateDiscordServerRequest extends FormRequest
@@ -11,6 +12,9 @@ class UpdateDiscordServerRequest extends FormRequest
         return $this->user()->can('update', $this->route('discordServer'));
     }
 
+    /**
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
     public function rules(): array
     {
         return [

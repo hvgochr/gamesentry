@@ -28,15 +28,7 @@ class MatchSummaryService
      */
     public function discordEmbed(array $summary): array
     {
-        /** @var array<int, array{name: string, value: string, inline: bool}> $fields */
-        $fields = collect($summary['embed_fields'] ?? [])
-            ->map(fn (array $field) => [
-                'name' => $field['name'],
-                'value' => $field['value'],
-                'inline' => $field['inline'] ?? true,
-            ])
-            ->values()
-            ->all();
+        $fields = $this->normalizeEmbedFields($summary['embed_fields'] ?? null);
 
         return [
             'title' => $summary['title'],
@@ -48,6 +40,34 @@ class MatchSummaryService
             ],
             'timestamp' => $summary['finished_at'],
         ];
+    }
+
+    /**
+     * @return list<array{name: string, value: string, inline: bool}>
+     */
+    private function normalizeEmbedFields(mixed $payload): array
+    {
+        if (! is_array($payload)) {
+            return [];
+        }
+
+        $fields = [];
+
+        foreach ($payload as $field) {
+            if (! is_array($field)
+                || ! is_string($field['name'] ?? null)
+                || ! is_string($field['value'] ?? null)) {
+                continue;
+            }
+
+            $fields[] = [
+                'name' => $field['name'],
+                'value' => $field['value'],
+                'inline' => is_bool($field['inline'] ?? null) ? $field['inline'] : true,
+            ];
+        }
+
+        return $fields;
     }
 
     /**

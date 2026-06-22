@@ -50,16 +50,25 @@ class User extends Authenticatable implements PasskeyUser
         ];
     }
 
+    /**
+     * @return HasMany<DiscordServer, $this>
+     */
     public function discordServers(): HasMany
     {
         return $this->hasMany(DiscordServer::class);
     }
 
+    /**
+     * @return HasManyThrough<WatchedPlayer, DiscordServer, $this>
+     */
     public function watchedPlayers(): HasManyThrough
     {
         return $this->hasManyThrough(WatchedPlayer::class, DiscordServer::class);
     }
 
+    /**
+     * @return HasManyThrough<MatchNotification, DiscordServer, $this>
+     */
     public function matchNotifications(): HasManyThrough
     {
         return $this->hasManyThrough(MatchNotification::class, DiscordServer::class);

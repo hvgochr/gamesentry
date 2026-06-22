@@ -28,7 +28,7 @@ class WatchedPlayerController extends Controller
         Gate::authorize('update', $discordServer);
 
         $payload = $this->resolveWatchedPlayerPayload(
-            $request->validated(),
+            $request->validatedPayload(),
             $discordServer,
             $discord,
             $riot,
@@ -75,7 +75,7 @@ class WatchedPlayerController extends Controller
         Gate::authorize('update', $watchedPlayer);
 
         $payload = $this->resolveWatchedPlayerPayload(
-            $request->validated(),
+            $request->validatedPayload(),
             $discordServer,
             $discord,
             $riot,
@@ -129,7 +129,7 @@ class WatchedPlayerController extends Controller
     }
 
     /**
-     * @param  array{game: string, routing_region: string, game_name: string, tag_line: string, discord_user_id: string, is_active?: bool|string}  $validated
+     * @param  array{game: string, routing_region: string, game_name: string, tag_line: string, discord_user_id: string, is_active: bool}  $validated
      * @return array{
      *     game: Game,
      *     routing_region: string,
@@ -152,7 +152,7 @@ class WatchedPlayerController extends Controller
         $gameName = trim($validated['game_name']);
         $tagLine = strtoupper(trim($validated['tag_line']));
         $discordUserId = trim($validated['discord_user_id']);
-        $isActive = filter_var($validated['is_active'] ?? true, FILTER_VALIDATE_BOOL);
+        $isActive = $validated['is_active'];
 
         try {
             $memberExists = $discord->guildMemberExists(

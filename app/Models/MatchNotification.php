@@ -11,7 +11,27 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $watched_player_id
+ * @property int $discord_server_id
+ * @property Game $game
+ * @property string $riot_match_id
+ * @property array<string, mixed>|null $match_payload
+ * @property array<string, mixed>|null $discord_embed_payload
+ * @property string|null $roast_text
+ * @property string|null $discord_delivery_nonce
+ * @property string|null $discord_message_id
+ * @property MatchNotificationStatus $status
+ * @property string|null $failure_reason
+ * @property Carbon|null $delivered_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read WatchedPlayer|null $watchedPlayer
+ * @property-read DiscordServer $discordServer
+ */
 #[Fillable([
     'watched_player_id',
     'discord_server_id',
@@ -37,6 +57,9 @@ class MatchNotification extends Model
         'status' => MatchNotificationStatus::Pending->value,
     ];
 
+    /**
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [
@@ -48,16 +71,25 @@ class MatchNotification extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<WatchedPlayer, $this>
+     */
     public function watchedPlayer(): BelongsTo
     {
         return $this->belongsTo(WatchedPlayer::class);
     }
 
+    /**
+     * @return BelongsTo<DiscordServer, $this>
+     */
     public function discordServer(): BelongsTo
     {
         return $this->belongsTo(DiscordServer::class);
     }
 
+    /**
+     * @return Builder<static>
+     */
     public function prunable(): Builder
     {
         return static::query()

@@ -78,20 +78,20 @@ class DiscordService
         }
 
         $guild = $guildResponse->json();
+
+        if (! is_array($guild)
+            || ! is_string($guild['id'] ?? null)
+            || ! is_string($guild['name'] ?? null)
+            || (! is_string($guild['icon'] ?? null) && ($guild['icon'] ?? null) !== null)) {
+            throw new RuntimeException('Discord returned an invalid guild response.');
+        }
+
         $channelsResponse = $this->botRequest()->get("/guilds/{$guildId}/channels");
         $channels = [];
         $syncError = null;
 
         if ($channelsResponse->successful()) {
-            $channels = $channelsResponse->collect()
-                ->filter(fn (array $channel) => in_array((int) $channel['type'], self::SupportedChannelTypes, true))
-                ->sortBy('position')
-                ->map(fn (array $channel) => [
-                    'id' => (string) $channel['id'],
-                    'name' => $channel['name'],
-                ])
-                ->values()
-                ->all();
+            $channels = $this->normalizeChannels($channelsResponse->json());
         } else {
             $syncError = "Unable to sync the {$guild['name']} guild channels.";
         }
@@ -166,6 +166,47 @@ class DiscordService
         }
 
         return "https://cdn.discordapp.com/icons/{$guildId}/{$iconHash}.png?size=128";
+    }
+
+    /**
+     * @return list<array{id: string, name: string}>
+     */
+    private function normalizeChannels(mixed $payload): array
+    {
+        if (! is_array($payload)) {
+            throw new RuntimeException('Discord returned an invalid channels response.');
+        }
+
+        $channels = [];
+
+        foreach ($payload as $channel) {
+            if (! is_array($channel)
+                || ! is_int($channel['type'] ?? null)
+                || ! in_array($channel['type'], self::SupportedChannelTypes, true)
+                || ! is_string($channel['id'] ?? null)
+                || ! is_string($channel['name'] ?? null)) {
+                continue;
+            }
+
+            $channels[] = [
+                'id' => $channel['id'],
+                'name' => $channel['name'],
+                'position' => is_int($channel['position'] ?? null) ? $channel['position'] : PHP_INT_MAX,
+            ];
+        }
+
+        usort(
+            $channels,
+            static fn (array $left, array $right): int => $left['position'] <=> $right['position'],
+        );
+
+        return array_map(
+            static fn (array $channel): array => [
+                'id' => $channel['id'],
+                'name' => $channel['name'],
+            ],
+            $channels,
+        );
     }
 
     private function botRequest(): PendingRequest

@@ -36,7 +36,7 @@ class DashboardController extends Controller
                 'game' => $notification->game->value,
                 'riot_match_id' => $notification->riot_match_id,
                 'status' => $notification->status->value,
-                'server_name' => $notification->discordServer?->name,
+                'server_name' => $notification->discordServer->name,
                 'player_name' => $notification->watchedPlayer === null
                     ? null
                     : "{$notification->watchedPlayer->game_name}#{$notification->watchedPlayer->tag_line}",

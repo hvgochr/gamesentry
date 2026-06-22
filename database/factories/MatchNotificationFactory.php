@@ -18,13 +18,7 @@ class MatchNotificationFactory extends Factory
     public function configure(): static
     {
         return $this->afterMaking(function (MatchNotification $matchNotification): void {
-            $watchedPlayerId = $matchNotification->watched_player_id;
-
-            if (! is_int($watchedPlayerId) && ! (is_string($watchedPlayerId) && ctype_digit($watchedPlayerId))) {
-                return;
-            }
-
-            $watchedPlayer = WatchedPlayer::query()->find($watchedPlayerId);
+            $watchedPlayer = WatchedPlayer::query()->find($matchNotification->watched_player_id);
 
             if ($watchedPlayer === null) {
                 return;
