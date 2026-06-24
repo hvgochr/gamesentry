@@ -17,8 +17,11 @@ use RuntimeException;
 
 class DiscordInstallController extends Controller
 {
-    public function redirect(Request $request, DiscordService $discord): RedirectResponse
-    {
+    public function redirect(
+        Request $request,
+        DiscordService $discord,
+        PlanLimitService $limits,
+    ): RedirectResponse {
         if (! $discord->isConfigured()) {
             Inertia::flash('toast', [
                 'type' => 'error',
@@ -28,13 +31,23 @@ class DiscordInstallController extends Controller
             return to_route('dashboard.discord.index');
         }
 
+        $guildId = $request->string('guild_id')->toString() ?: null;
+
+        if (! $this->isReconnectForLinkedServer($request, $guildId)) {
+            try {
+                $limits->ensureCanCreateDiscordServer($request->user());
+            } catch (PlanLimitExceededException $exception) {
+                return $this->redirectWithToast('error', $exception->getMessage());
+            }
+        }
+
         $state = Str::random(40);
 
         $request->session()->put('discord.install_state', $state);
 
         return redirect()->away($discord->installationUrl(
             state: $state,
-            guildId: $request->string('guild_id')->toString() ?: null,
+            guildId: $guildId,
         ));
     }
 
@@ -149,5 +162,17 @@ class DiscordInstallController extends Controller
         ]);
 
         return to_route('dashboard.discord.index');
+    }
+
+    private function isReconnectForLinkedServer(Request $request, ?string $guildId): bool
+    {
+        if ($guildId === null) {
+            return false;
+        }
+
+        return DiscordServer::query()
+            ->where('discord_guild_id', $guildId)
+            ->whereBelongsTo($request->user())
+            ->exists();
     }
 }
