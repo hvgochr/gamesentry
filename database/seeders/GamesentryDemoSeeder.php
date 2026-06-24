@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\Plan;
 use App\Models\DiscordServer;
 use App\Models\MatchNotification;
 use App\Models\User;
@@ -21,6 +22,10 @@ class GamesentryDemoSeeder extends Seeder
                 'email_verified_at' => now(),
             ],
         );
+
+        $demoUser->forceFill([
+            'plan' => Plan::Pro,
+        ])->save();
 
         $demoUser->discordServers()->delete();
 

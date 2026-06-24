@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\Plan;
+use App\Enums\UserRole;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,6 +23,8 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string $name
  * @property string $email
  * @property Carbon|null $email_verified_at
+ * @property UserRole $role
+ * @property Plan $plan
  * @property string $password
  * @property string|null $two_factor_secret
  * @property string|null $two_factor_recovery_codes
@@ -45,6 +49,8 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     {
         return [
             'email_verified_at' => 'datetime',
+            'role' => UserRole::class,
+            'plan' => Plan::class,
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
         ];
@@ -72,5 +78,18 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     public function matchNotifications(): HasManyThrough
     {
         return $this->hasManyThrough(MatchNotification::class, DiscordServer::class);
+    }
+
+    /**
+     * @return HasMany<DailyUsageCounter, $this>
+     */
+    public function dailyUsageCounters(): HasMany
+    {
+        return $this->hasMany(DailyUsageCounter::class);
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === UserRole::Admin;
     }
 }
