@@ -8,6 +8,8 @@ use App\Models\WatchedPlayer;
 use App\Services\Discord\DiscordService;
 use App\Services\Discord\Exceptions\DiscordDuplicateNonceException;
 use App\Services\Groq\GroqService;
+use App\Services\Plans\Exceptions\PlanLimitExceededException;
+use App\Services\Plans\PlanLimitService;
 use App\Services\Riot\Exceptions\RiotRateLimitException;
 use App\Services\Riot\MatchSummaryService;
 use App\Services\Riot\RiotApiService;
@@ -60,9 +62,10 @@ class ProcessMatchNotificationJob implements ShouldBeUniqueUntilProcessing, Shou
         MatchSummaryService $summary,
         GroqService $groq,
         DiscordService $discord,
+        PlanLimitService $limits,
     ): void {
         $notification = MatchNotification::query()
-            ->with(['watchedPlayer.discordServer', 'discordServer'])
+            ->with(['watchedPlayer.discordServer.user', 'discordServer.user'])
             ->find($this->matchNotificationId);
 
         if ($notification === null || $notification->status === MatchNotificationStatus::Sent) {
@@ -76,14 +79,21 @@ class ProcessMatchNotificationJob implements ShouldBeUniqueUntilProcessing, Shou
             return;
         }
 
-        $delivery = $this->prepareDelivery(
-            $notification,
-            $watchedPlayer,
-            $riot,
-            $polling,
-            $summary,
-            $groq,
-        );
+        try {
+            $delivery = $this->prepareDelivery(
+                $notification,
+                $watchedPlayer,
+                $riot,
+                $polling,
+                $summary,
+                $groq,
+                $limits,
+            );
+        } catch (PlanLimitExceededException $exception) {
+            $this->markAsFailed($notification, $exception->getMessage());
+
+            return;
+        }
 
         try {
             $messageId = $discord->sendMatchNotification(
@@ -143,13 +153,14 @@ class ProcessMatchNotificationJob implements ShouldBeUniqueUntilProcessing, Shou
         RiotPollingService $polling,
         MatchSummaryService $summary,
         GroqService $groq,
+        PlanLimitService $limits,
     ): array {
         $payload = $notification->match_payload;
         $embed = $notification->discord_embed_payload;
         $roast = $notification->roast_text;
         $nonce = $notification->discord_delivery_nonce ?: Str::random(24);
 
-        if (! is_array($payload) || ! is_array($embed) || ! is_string($roast) || $roast === '') {
+        if (! is_array($payload) || ! is_array($embed)) {
             try {
                 $match = $riot->match(
                     $watchedPlayer->game,
@@ -163,8 +174,12 @@ class ProcessMatchNotificationJob implements ShouldBeUniqueUntilProcessing, Shou
             }
 
             $payload = $summary->normalize($watchedPlayer, $match);
-            $roast = $groq->generateRoast($payload);
             $embed = $summary->discordEmbed($payload);
+        }
+
+        if (! is_string($roast) || $roast === '') {
+            $limits->consumeGroqCall($watchedPlayer->discordServer->user);
+            $roast = $groq->generateRoast($payload);
         }
 
         $notification->forceFill([
@@ -191,5 +206,13 @@ class ProcessMatchNotificationJob implements ShouldBeUniqueUntilProcessing, Shou
             'payload' => $payload,
             'roast' => $roast,
         ];
+    }
+
+    private function markAsFailed(MatchNotification $notification, string $reason): void
+    {
+        $notification->forceFill([
+            'status' => MatchNotificationStatus::Failed,
+            'failure_reason' => $reason,
+        ])->save();
     }
 }

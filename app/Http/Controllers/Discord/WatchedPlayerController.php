@@ -7,11 +7,15 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Discord\StoreWatchedPlayerRequest;
 use App\Http\Requests\Discord\UpdateWatchedPlayerRequest;
 use App\Models\DiscordServer;
+use App\Models\User;
 use App\Models\WatchedPlayer;
 use App\Services\Discord\DiscordService;
+use App\Services\Plans\Exceptions\PlanLimitExceededException;
+use App\Services\Plans\PlanLimitService;
 use App\Services\Riot\RiotApiService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -24,8 +28,11 @@ class WatchedPlayerController extends Controller
         DiscordServer $discordServer,
         DiscordService $discord,
         RiotApiService $riot,
+        PlanLimitService $limits,
     ): RedirectResponse {
         Gate::authorize('update', $discordServer);
+
+        $this->validateWatchedPlayerLimit($request->user(), $limits);
 
         $payload = $this->resolveWatchedPlayerPayload(
             $request->validatedPayload(),
@@ -34,28 +41,37 @@ class WatchedPlayerController extends Controller
             $riot,
         );
 
-        if ($discordServer->watchedPlayers()
-            ->where('game', $payload['game']->value)
-            ->where('riot_puuid', $payload['riot_puuid'])
-            ->exists()) {
-            throw ValidationException::withMessages([
-                'game_name' => 'This player is already being monitored for this game on this server.',
-            ]);
-        }
+        DB::transaction(function () use ($request, $discordServer, $payload, $limits): void {
+            $user = User::query()
+                ->whereKey($request->user()->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        $discordServer->watchedPlayers()->create([
-            'game' => $payload['game'],
-            'routing_region' => $payload['routing_region'],
-            'game_name' => $payload['game_name'],
-            'tag_line' => $payload['tag_line'],
-            'riot_puuid' => $payload['riot_puuid'],
-            'discord_user_id' => $payload['discord_user_id'],
-            'last_seen_match_id' => $payload['last_seen_match_id'],
-            'last_polled_at' => null,
-            'next_poll_at' => now()->addSeconds(300),
-            'poll_interval_seconds' => 300,
-            'is_active' => $payload['is_active'],
-        ]);
+            $this->validateWatchedPlayerLimit($user, $limits);
+
+            if ($discordServer->watchedPlayers()
+                ->where('game', $payload['game']->value)
+                ->where('riot_puuid', $payload['riot_puuid'])
+                ->exists()) {
+                throw ValidationException::withMessages([
+                    'game_name' => 'This player is already being monitored for this game on this server.',
+                ]);
+            }
+
+            $discordServer->watchedPlayers()->create([
+                'game' => $payload['game'],
+                'routing_region' => $payload['routing_region'],
+                'game_name' => $payload['game_name'],
+                'tag_line' => $payload['tag_line'],
+                'riot_puuid' => $payload['riot_puuid'],
+                'discord_user_id' => $payload['discord_user_id'],
+                'last_seen_match_id' => $payload['last_seen_match_id'],
+                'last_polled_at' => null,
+                'next_poll_at' => now()->addSeconds(300),
+                'poll_interval_seconds' => 300,
+                'is_active' => $payload['is_active'],
+            ]);
+        }, 3);
 
         Inertia::flash('toast', [
             'type' => 'success',
@@ -213,5 +229,16 @@ class WatchedPlayerController extends Controller
             'last_seen_match_id' => $latestMatchId,
             'is_active' => $isActive,
         ];
+    }
+
+    private function validateWatchedPlayerLimit(User $user, PlanLimitService $limits): void
+    {
+        try {
+            $limits->ensureCanCreateWatchedPlayer($user);
+        } catch (PlanLimitExceededException $exception) {
+            throw ValidationException::withMessages([
+                'game_name' => $exception->getMessage(),
+            ]);
+        }
     }
 }

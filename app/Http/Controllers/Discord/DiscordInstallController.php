@@ -4,9 +4,13 @@ namespace App\Http\Controllers\Discord;
 
 use App\Http\Controllers\Controller;
 use App\Models\DiscordServer;
+use App\Models\User;
 use App\Services\Discord\DiscordService;
+use App\Services\Plans\Exceptions\PlanLimitExceededException;
+use App\Services\Plans\PlanLimitService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use RuntimeException;
@@ -34,8 +38,11 @@ class DiscordInstallController extends Controller
         ));
     }
 
-    public function callback(Request $request, DiscordService $discord): RedirectResponse
-    {
+    public function callback(
+        Request $request,
+        DiscordService $discord,
+        PlanLimitService $limits,
+    ): RedirectResponse {
         if ($request->filled('error')) {
             return $this->redirectWithToast('error', 'The installation of the Discord bot has been cancelled.');
         }
@@ -85,23 +92,51 @@ class DiscordInstallController extends Controller
             ->whereBelongsTo($request->user())
             ->first();
 
+        if ($existingServer === null) {
+            try {
+                $limits->ensureCanCreateDiscordServer($request->user());
+            } catch (PlanLimitExceededException $exception) {
+                return $this->redirectWithToast('error', $exception->getMessage());
+            }
+        }
+
         $channel = collect($guild['channels'])->firstWhere(
             'id',
             $existingServer?->discord_channel_id,
         ) ?? $guild['channels'][0];
 
-        DiscordServer::query()->updateOrCreate(
-            ['discord_guild_id' => $guild['id']],
-            [
-                'user_id' => $request->user()->id,
-                'name' => $guild['name'],
-                'icon' => $guild['icon'],
-                'discord_channel_id' => $channel['id'],
-                'discord_channel_name' => $channel['name'],
-                'bot_installed_at' => now(),
-                'settings_synced_at' => now(),
-            ],
-        );
+        try {
+            DB::transaction(function () use ($request, $guild, $channel, $limits): void {
+                $user = User::query()
+                    ->whereKey($request->user()->id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $existingServer = DiscordServer::query()
+                    ->where('discord_guild_id', $guild['id'])
+                    ->whereBelongsTo($user)
+                    ->first();
+
+                if ($existingServer === null) {
+                    $limits->ensureCanCreateDiscordServer($user);
+                }
+
+                DiscordServer::query()->updateOrCreate(
+                    ['discord_guild_id' => $guild['id']],
+                    [
+                        'user_id' => $user->id,
+                        'name' => $guild['name'],
+                        'icon' => $guild['icon'],
+                        'discord_channel_id' => $channel['id'],
+                        'discord_channel_name' => $channel['name'],
+                        'bot_installed_at' => now(),
+                        'settings_synced_at' => now(),
+                    ],
+                );
+            }, 3);
+        } catch (PlanLimitExceededException $exception) {
+            return $this->redirectWithToast('error', $exception->getMessage());
+        }
 
         return $this->redirectWithToast('success', 'Discord server linked successfully. Check the destination channel if necessary.');
     }
