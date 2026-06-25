@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'groq' => [
+        'notification_generation_per_minute' => (int) env('GAMESENTRY_GROQ_NOTIFICATION_GENERATION_PER_MINUTE', 30),
+    ],
+
     'notifications' => [
         'match_notification_retention_days' => (int) env('GAMESENTRY_MATCH_NOTIFICATION_RETENTION_DAYS', 30),
     ],

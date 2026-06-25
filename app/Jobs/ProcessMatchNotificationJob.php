@@ -18,6 +18,7 @@ use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\Middleware\RateLimited;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -28,7 +29,7 @@ class ProcessMatchNotificationJob implements ShouldBeUniqueUntilProcessing, Shou
     use InteractsWithQueue;
     use Queueable;
 
-    public int $tries = 3;
+    public int $tries = 10;
 
     public int $timeout = 90;
 
@@ -53,6 +54,7 @@ class ProcessMatchNotificationJob implements ShouldBeUniqueUntilProcessing, Shou
             (new WithoutOverlapping("match-notification:{$this->matchNotificationId}"))
                 ->releaseAfter(5)
                 ->expireAfter(180),
+            (new RateLimited('groq-notifications'))->releaseAfter(60),
         ];
     }
 
