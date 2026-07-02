@@ -32,6 +32,7 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'role' => UserRole::User->value,
             'plan' => Plan::Free->value,
+            'paused_at' => null,
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
             'two_factor_secret' => null,
@@ -79,6 +80,16 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'plan' => Plan::Pro->value,
+        ]);
+    }
+
+    /**
+     * Indicate that the user is paused by an admin.
+     */
+    public function paused(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'paused_at' => now(),
         ]);
     }
 }

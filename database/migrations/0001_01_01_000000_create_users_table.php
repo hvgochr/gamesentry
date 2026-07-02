@@ -18,6 +18,7 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('role', 16)->default('user');
             $table->string('plan', 16)->default('free');
+            $table->timestamp('paused_at')->nullable()->index();
             $table->string('password');
             $table->rememberToken();
             $table->timestamps();
