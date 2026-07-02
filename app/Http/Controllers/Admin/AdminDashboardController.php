@@ -57,7 +57,7 @@ class AdminDashboardController extends Controller
      */
     private function users(PlanLimitService $limits): array
     {
-        return User::query()
+        return $this->listOf(User::query()
             ->withCount(['discordServers', 'watchedPlayers'])
             ->withSum([
                 'dailyUsageCounters as groq_calls_today' => fn ($query) => $query->whereDate('usage_date', today()),
@@ -78,8 +78,7 @@ class AdminDashboardController extends Controller
                 'groq_calls_today' => (int) $user->groq_calls_today,
                 'groq_daily_limit' => $limits->groqDailyLimit($user),
             ])
-            ->values()
-            ->all();
+            ->all());
     }
 
     /**
@@ -87,7 +86,7 @@ class AdminDashboardController extends Controller
      */
     private function recentFailedNotifications(): array
     {
-        return MatchNotification::query()
+        return $this->listOf(MatchNotification::query()
             ->with(['discordServer.user:id,name,email', 'watchedPlayer:id,game_name,tag_line'])
             ->where('status', MatchNotificationStatus::Failed->value)
             ->latest()
@@ -105,8 +104,7 @@ class AdminDashboardController extends Controller
                 'failure_reason' => $notification->failure_reason,
                 'created_at' => $notification->created_at?->toIso8601String(),
             ])
-            ->values()
-            ->all();
+            ->all());
     }
 
     /**
@@ -114,7 +112,7 @@ class AdminDashboardController extends Controller
      */
     private function servers(): array
     {
-        return DiscordServer::query()
+        return $this->listOf(DiscordServer::query()
             ->with('user:id,name,email')
             ->withCount('watchedPlayers')
             ->latest()
@@ -129,8 +127,7 @@ class AdminDashboardController extends Controller
                 'watched_players_count' => $server->watched_players_count,
                 'updated_at' => $server->updated_at?->toIso8601String(),
             ])
-            ->values()
-            ->all();
+            ->all());
     }
 
     /**
@@ -138,7 +135,7 @@ class AdminDashboardController extends Controller
      */
     private function activeWatchedPlayers(): array
     {
-        return WatchedPlayer::query()
+        return $this->listOf(WatchedPlayer::query()
             ->with(['discordServer:id,user_id,name', 'discordServer.user:id,name,email'])
             ->active()
             ->latest()
@@ -152,8 +149,7 @@ class AdminDashboardController extends Controller
                 'user_name' => $player->discordServer->user->name,
                 'next_poll_at' => $player->next_poll_at?->toIso8601String(),
             ])
-            ->values()
-            ->all();
+            ->all());
     }
 
     /**
@@ -161,21 +157,20 @@ class AdminDashboardController extends Controller
      */
     private function failedJobs(): array
     {
-        return DB::table('failed_jobs')
+        return $this->listOf(DB::table('failed_jobs')
             ->latest('failed_at')
             ->limit(10)
             ->get()
             ->map(fn (object $job) => [
-                'id' => $job->id,
-                'uuid' => $job->uuid,
-                'connection' => $job->connection,
-                'queue' => $job->queue,
+                'id' => (int) $job->id,
+                'uuid' => (string) $job->uuid,
+                'connection' => (string) $job->connection,
+                'queue' => (string) $job->queue,
                 'name' => $this->failedJobName((string) $job->payload),
-                'failed_at' => Carbon::parse($job->failed_at)->toIso8601String(),
-                'exception' => str($job->exception)->before("\n")->limit(180)->toString(),
+                'failed_at' => Carbon::parse((string) $job->failed_at)->toIso8601String(),
+                'exception' => str((string) $job->exception)->before("\n")->limit(180)->toString(),
             ])
-            ->values()
-            ->all();
+            ->all());
     }
 
     /**
@@ -185,7 +180,7 @@ class AdminDashboardController extends Controller
     {
         $now = now()->timestamp;
 
-        return DB::table('jobs')
+        return $this->listOf(DB::table('jobs')
             ->select('queue')
             ->selectRaw('count(*) as total')
             ->selectRaw('sum(case when reserved_at is null then 1 else 0 end) as pending')
@@ -196,7 +191,7 @@ class AdminDashboardController extends Controller
             ->orderBy('queue')
             ->get()
             ->map(fn (object $queue) => [
-                'queue' => $queue->queue,
+                'queue' => (string) $queue->queue,
                 'total' => (int) $queue->total,
                 'pending' => (int) $queue->pending,
                 'reserved' => (int) $queue->reserved,
@@ -205,8 +200,7 @@ class AdminDashboardController extends Controller
                     ? null
                     : Carbon::createFromTimestamp((int) $queue->oldest_created_at)->toIso8601String(),
             ])
-            ->values()
-            ->all();
+            ->all());
     }
 
     /**
@@ -228,7 +222,7 @@ class AdminDashboardController extends Controller
      */
     private function riotBackoff(RiotPollingService $polling): array
     {
-        return collect(Game::cases())
+        return $this->listOf(collect(Game::cases())
             ->map(function (Game $game) use ($polling) {
                 $backoffUntil = $polling->backoffUntil($game);
 
@@ -251,8 +245,7 @@ class AdminDashboardController extends Controller
                     'is_backing_off' => $backoffUntil !== null && $backoffUntil->isFuture(),
                 ];
             })
-            ->values()
-            ->all();
+            ->all());
     }
 
     private function failedJobName(string $payload): string
@@ -264,5 +257,16 @@ class AdminDashboardController extends Controller
         }
 
         return (string) data_get($decoded, 'displayName', 'Unknown job');
+    }
+
+    /**
+     * @template TValue
+     *
+     * @param  array<int, TValue>  $items
+     * @return list<TValue>
+     */
+    private function listOf(array $items): array
+    {
+        return array_values($items);
     }
 }
