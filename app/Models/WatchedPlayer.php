@@ -105,6 +105,7 @@ class WatchedPlayer extends Model
         $query
             ->where('is_active', true)
             ->whereNotNull('next_poll_at')
-            ->where('next_poll_at', '<=', now());
+            ->where('next_poll_at', '<=', now())
+            ->whereHas('discordServer.user', fn (Builder $query) => $query->whereNull('paused_at'));
     }
 }
