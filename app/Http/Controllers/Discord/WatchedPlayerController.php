@@ -32,6 +32,7 @@ class WatchedPlayerController extends Controller
     ): RedirectResponse {
         Gate::authorize('update', $discordServer);
 
+        $this->ensureUserIsNotPaused($request->user());
         $this->validateWatchedPlayerLimit($request->user(), $limits);
 
         $payload = $this->resolveWatchedPlayerPayload(
@@ -89,6 +90,8 @@ class WatchedPlayerController extends Controller
         RiotApiService $riot,
     ): RedirectResponse {
         Gate::authorize('update', $watchedPlayer);
+
+        $this->ensureUserIsNotPaused($request->user());
 
         $payload = $this->resolveWatchedPlayerPayload(
             $request->validatedPayload(),
@@ -240,5 +243,16 @@ class WatchedPlayerController extends Controller
                 'game_name' => $exception->getMessage(),
             ]);
         }
+    }
+
+    private function ensureUserIsNotPaused(User $user): void
+    {
+        if (! $user->isPaused()) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'game_name' => 'Your account has been paused. Contact support before changing tracked players.',
+        ]);
     }
 }

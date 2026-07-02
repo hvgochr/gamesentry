@@ -22,6 +22,10 @@ class DiscordInstallController extends Controller
         DiscordService $discord,
         PlanLimitService $limits,
     ): RedirectResponse {
+        if ($request->user()->isPaused()) {
+            return $this->redirectWithToast('error', 'Your account has been paused. Contact support before linking Discord servers.');
+        }
+
         if (! $discord->isConfigured()) {
             Inertia::flash('toast', [
                 'type' => 'error',
@@ -56,6 +60,10 @@ class DiscordInstallController extends Controller
         DiscordService $discord,
         PlanLimitService $limits,
     ): RedirectResponse {
+        if ($request->user()->isPaused()) {
+            return $this->redirectWithToast('error', 'Your account has been paused. Contact support before linking Discord servers.');
+        }
+
         if ($request->filled('error')) {
             return $this->redirectWithToast('error', 'The installation of the Discord bot has been cancelled.');
         }
