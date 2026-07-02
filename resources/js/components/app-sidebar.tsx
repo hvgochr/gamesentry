@@ -1,5 +1,5 @@
-import { Link } from '@inertiajs/react';
-import { Bot, FolderGit2, LayoutGrid } from 'lucide-react';
+import { Link, usePage } from '@inertiajs/react';
+import { Bot, FolderGit2, LayoutGrid, ShieldCheck } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -14,6 +14,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { index as dashboard } from '@/routes/dashboard';
+import { index as admin } from '@/routes/dashboard/admin';
 import { index as discord } from '@/routes/dashboard/discord';
 import type { NavItem } from '@/types';
 
@@ -39,6 +40,18 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+    const { auth } = usePage().props;
+    const navItems = auth.can.view_admin
+        ? [
+              ...mainNavItems,
+              {
+                  title: 'Admin',
+                  href: admin(),
+                  icon: ShieldCheck,
+              },
+          ]
+        : mainNavItems;
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -54,7 +67,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain items={navItems} />
             </SidebarContent>
 
             <SidebarFooter>

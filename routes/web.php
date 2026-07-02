@@ -12,5 +12,6 @@ Route::middleware(['auth', 'verified'])
         Route::get('/', DashboardController::class)->name('index');
     });
 
+require __DIR__.'/admin.php';
 require __DIR__.'/discord.php';
 require __DIR__.'/settings.php';
