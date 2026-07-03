@@ -53,4 +53,8 @@ return [
         'base_url' => env('GROQ_BASE_URL', 'https://api.groq.com/openai/v1'),
     ],
 
+    'stripe' => [
+        'pro_price_id' => env('STRIPE_PRO_PRICE_ID'),
+    ],
+
 ];
