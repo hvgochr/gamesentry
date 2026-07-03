@@ -1,5 +1,11 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Bot, FolderGit2, LayoutGrid, ShieldCheck } from 'lucide-react';
+import {
+    Bot,
+    CreditCard,
+    FolderGit2,
+    LayoutGrid,
+    ShieldCheck,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -15,6 +21,7 @@ import {
 } from '@/components/ui/sidebar';
 import { index as dashboard } from '@/routes/dashboard';
 import { index as admin } from '@/routes/dashboard/admin';
+import { index as billing } from '@/routes/dashboard/billing';
 import { index as discord } from '@/routes/dashboard/discord';
 import type { NavItem } from '@/types';
 
@@ -28,6 +35,11 @@ const mainNavItems: NavItem[] = [
         title: 'Discord',
         href: discord(),
         icon: Bot,
+    },
+    {
+        title: 'Billing',
+        href: billing(),
+        icon: CreditCard,
     },
 ];
 
