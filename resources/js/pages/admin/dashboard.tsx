@@ -342,9 +342,7 @@ export default function AdminDashboard({
                                                 {game.due_players_count} due /{' '}
                                                 {game.active_players_count}{' '}
                                                 active, budget{' '}
-                                                {
-                                                    game.dispatch_limit_per_minute
-                                                }
+                                                {game.dispatch_limit_per_minute}
                                                 /min
                                             </p>
                                         </div>
@@ -363,9 +361,7 @@ export default function AdminDashboard({
                                     {game.backoff_until && (
                                         <p className="mt-2 text-xs text-muted-foreground">
                                             Backoff until{' '}
-                                            {formatDateTime(
-                                                game.backoff_until,
-                                            )}
+                                            {formatDateTime(game.backoff_until)}
                                         </p>
                                     )}
                                 </div>
@@ -573,7 +569,9 @@ export default function AdminDashboard({
                                                 </p>
                                                 <p className="truncate text-sm text-muted-foreground">
                                                     {server.user_name} -{' '}
-                                                    {server.watched_players_count}{' '}
+                                                    {
+                                                        server.watched_players_count
+                                                    }{' '}
                                                     player(s)
                                                 </p>
                                             </div>

@@ -61,8 +61,8 @@ export default function BillingIndex({
 
                 {!billingConfigured && (
                     <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-950 dark:bg-amber-950/40 dark:text-amber-300">
-                        Stripe billing is not configured yet. Add
-                        STRIPE_KEY, STRIPE_SECRET, STRIPE_WEBHOOK_SECRET, and
+                        Stripe billing is not configured yet. Add STRIPE_KEY,
+                        STRIPE_SECRET, STRIPE_WEBHOOK_SECRET, and
                         STRIPE_PRO_PRICE_ID to enable checkout.
                     </div>
                 )}
