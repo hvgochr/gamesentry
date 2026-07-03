@@ -13,5 +13,6 @@ Route::middleware(['auth', 'verified'])
     });
 
 require __DIR__.'/admin.php';
+require __DIR__.'/billing.php';
 require __DIR__.'/discord.php';
 require __DIR__.'/settings.php';
