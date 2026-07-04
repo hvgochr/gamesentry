@@ -16,6 +16,7 @@ import AdminFailedJobController from '@/actions/App/Http/Controllers/Admin/Admin
 import AdminNotificationController from '@/actions/App/Http/Controllers/Admin/AdminNotificationController';
 import AdminUserController from '@/actions/App/Http/Controllers/Admin/AdminUserController';
 import AdminWatchedPlayerController from '@/actions/App/Http/Controllers/Admin/AdminWatchedPlayerController';
+import DestructiveActionDialog from '@/components/destructive-action-dialog';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -268,25 +269,22 @@ export default function AdminDashboard({
                                                 )}
                                             </Form>
                                         ) : (
-                                            <Form
-                                                {...AdminUserController.pause.form(
+                                            <DestructiveActionDialog
+                                                form={AdminUserController.pause.form(
                                                     { user: user.id },
                                                 )}
-                                                options={{
-                                                    preserveScroll: true,
-                                                }}
+                                                title={`Pause ${user.name}?`}
+                                                description="This user will be blocked from linking Discord servers or changing tracked players until an admin resumes the account."
+                                                confirmLabel="Pause user"
                                             >
-                                                {({ processing }) => (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        disabled={processing}
-                                                    >
-                                                        <PauseCircle className="size-4" />
-                                                        Pause
-                                                    </Button>
-                                                )}
-                                            </Form>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                >
+                                                    <PauseCircle className="size-4" />
+                                                    Pause
+                                                </Button>
+                                            </DestructiveActionDialog>
                                         )}
                                     </div>
                                 </div>
@@ -406,30 +404,26 @@ export default function AdminDashboard({
                                                         }
                                                     </p>
                                                 </div>
-                                                <Form
-                                                    {...AdminNotificationController.retry.form(
+                                                <DestructiveActionDialog
+                                                    form={AdminNotificationController.retry.form(
                                                         {
                                                             notification:
                                                                 notification.id,
                                                         },
                                                     )}
-                                                    options={{
-                                                        preserveScroll: true,
-                                                    }}
+                                                    title="Retry this notification?"
+                                                    description="This will queue the notification again and may send a Discord message if the retry succeeds."
+                                                    confirmLabel="Retry notification"
+                                                    confirmVariant="default"
                                                 >
-                                                    {({ processing }) => (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            disabled={
-                                                                processing
-                                                            }
-                                                        >
-                                                            <RefreshCcw className="size-4" />
-                                                            Retry
-                                                        </Button>
-                                                    )}
-                                                </Form>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                    >
+                                                        <RefreshCcw className="size-4" />
+                                                        Retry
+                                                    </Button>
+                                                </DestructiveActionDialog>
                                             </div>
                                             <p className="mt-2 text-sm text-red-600 dark:text-red-300">
                                                 {notification.failure_reason ??
@@ -471,25 +465,23 @@ export default function AdminDashboard({
                                                     )}
                                                 </p>
                                             </div>
-                                            <Form
-                                                {...AdminFailedJobController.retry.form(
+                                            <DestructiveActionDialog
+                                                form={AdminFailedJobController.retry.form(
                                                     { uuid: job.uuid },
                                                 )}
-                                                options={{
-                                                    preserveScroll: true,
-                                                }}
+                                                title="Retry this failed job?"
+                                                description="This will push the failed job back onto the queue. Only retry it if the underlying problem has been fixed."
+                                                confirmLabel="Retry job"
+                                                confirmVariant="default"
                                             >
-                                                {({ processing }) => (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        disabled={processing}
-                                                    >
-                                                        <RefreshCcw className="size-4" />
-                                                        Retry
-                                                    </Button>
-                                                )}
-                                            </Form>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                >
+                                                    <RefreshCcw className="size-4" />
+                                                    Retry
+                                                </Button>
+                                            </DestructiveActionDialog>
                                         </div>
                                         <p className="mt-2 text-sm text-red-600 dark:text-red-300">
                                             {job.exception}
@@ -575,28 +567,25 @@ export default function AdminDashboard({
                                                     player(s)
                                                 </p>
                                             </div>
-                                            <Form
-                                                {...AdminDiscordServerController.unlink.form(
+                                            <DestructiveActionDialog
+                                                form={AdminDiscordServerController.unlink.form(
                                                     {
                                                         discordServer:
                                                             server.id,
                                                     },
                                                 )}
-                                                options={{
-                                                    preserveScroll: true,
-                                                }}
+                                                title={`Unlink ${server.name}?`}
+                                                description="This will remove the linked Discord server, its tracked players, and related notifications from GameSentry."
+                                                confirmLabel="Unlink server"
                                             >
-                                                {({ processing }) => (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="destructive"
-                                                        disabled={processing}
-                                                    >
-                                                        <Trash2 className="size-4" />
-                                                        Unlink
-                                                    </Button>
-                                                )}
-                                            </Form>
+                                                <Button
+                                                    size="sm"
+                                                    variant="destructive"
+                                                >
+                                                    <Trash2 className="size-4" />
+                                                    Unlink
+                                                </Button>
+                                            </DestructiveActionDialog>
                                         </div>
                                     </div>
                                 ))
@@ -630,28 +619,25 @@ export default function AdminDashboard({
                                                     {player.game.toUpperCase()}
                                                 </p>
                                             </div>
-                                            <Form
-                                                {...AdminWatchedPlayerController.disable.form(
+                                            <DestructiveActionDialog
+                                                form={AdminWatchedPlayerController.disable.form(
                                                     {
                                                         watchedPlayer:
                                                             player.id,
                                                     },
                                                 )}
-                                                options={{
-                                                    preserveScroll: true,
-                                                }}
+                                                title={`Disable tracking for ${player.name}?`}
+                                                description="This will stop polling this player immediately. Tracking will stay disabled until it is manually re-enabled later."
+                                                confirmLabel="Disable tracking"
                                             >
-                                                {({ processing }) => (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        disabled={processing}
-                                                    >
-                                                        <Ban className="size-4" />
-                                                        Disable
-                                                    </Button>
-                                                )}
-                                            </Form>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                >
+                                                    <Ban className="size-4" />
+                                                    Disable
+                                                </Button>
+                                            </DestructiveActionDialog>
                                         </div>
                                     </div>
                                 ))

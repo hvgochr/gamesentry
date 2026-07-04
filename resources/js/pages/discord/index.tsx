@@ -2,6 +2,7 @@ import { Form, Head, Link } from '@inertiajs/react';
 import { Bot, CheckCircle2, Server, Trash2, Users } from 'lucide-react';
 import DiscordInstallController from '@/actions/App/Http/Controllers/Discord/DiscordInstallController';
 import DiscordServerController from '@/actions/App/Http/Controllers/Discord/DiscordServerController';
+import DestructiveActionDialog from '@/components/destructive-action-dialog';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -300,28 +301,22 @@ export default function DiscordIndex({
                                                 </Button>
                                             )}
 
-                                            <Form
-                                                {...DiscordServerController.destroy.form(
+                                            <DestructiveActionDialog
+                                                form={DiscordServerController.destroy.form(
                                                     {
                                                         discordServer:
                                                             server.id,
                                                     },
                                                 )}
-                                                options={{
-                                                    preserveScroll: true,
-                                                }}
+                                                title={`Remove ${server.name}?`}
+                                                description="This will unlink the Discord server from your account and remove its tracked players and notification history. This cannot be undone."
+                                                confirmLabel="Remove server"
                                             >
-                                                {({ processing }) => (
-                                                    <Button
-                                                        type="submit"
-                                                        variant="destructive"
-                                                        disabled={processing}
-                                                    >
-                                                        <Trash2 className="size-4" />
-                                                        Remove
-                                                    </Button>
-                                                )}
-                                            </Form>
+                                                <Button variant="destructive">
+                                                    <Trash2 className="size-4" />
+                                                    Remove
+                                                </Button>
+                                            </DestructiveActionDialog>
                                         </div>
                                     </div>
                                 </div>

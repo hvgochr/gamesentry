@@ -1,6 +1,7 @@
 import { Form, Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft, Save, Trash2, UserPlus } from 'lucide-react';
 import WatchedPlayerController from '@/actions/App/Http/Controllers/Discord/WatchedPlayerController';
+import DestructiveActionDialog from '@/components/destructive-action-dialog';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -528,26 +529,22 @@ export default function DiscordServerShow({
                                     </Form>
 
                                     <div className="mt-3">
-                                        <Form
-                                            {...WatchedPlayerController.destroy.form(
+                                        <DestructiveActionDialog
+                                            form={WatchedPlayerController.destroy.form(
                                                 {
                                                     discordServer: server.id,
                                                     watchedPlayer: player.id,
                                                 },
                                             )}
-                                            options={{ preserveScroll: true }}
+                                            title={`Remove ${player.game_name}#${player.tag_line}?`}
+                                            description="This player will no longer be tracked on this Discord server. Existing notification history will also be removed."
+                                            confirmLabel="Remove player"
                                         >
-                                            {({ processing }) => (
-                                                <Button
-                                                    type="submit"
-                                                    variant="destructive"
-                                                    disabled={processing}
-                                                >
-                                                    <Trash2 className="size-4" />
-                                                    Remove
-                                                </Button>
-                                            )}
-                                        </Form>
+                                            <Button variant="destructive">
+                                                <Trash2 className="size-4" />
+                                                Remove
+                                            </Button>
+                                        </DestructiveActionDialog>
                                     </div>
                                 </div>
                             ))
