@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\ScheduleInterval;
 use App\Models\MatchNotification;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -11,12 +12,12 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('gamesentry:dispatch-watched-player-polls')
-    ->everyMinute()
+    ->cron(ScheduleInterval::cronEveryMinutes((int) config('gamesentry.scheduler.polling_frequency_minutes', 1)))
     ->withoutOverlapping();
 
 Schedule::call(fn () => Cache::put('gamesentry:scheduler:last-run-at', now()->toIso8601String(), now()->addMinutes(10)))
     ->name('gamesentry:scheduler-heartbeat')
-    ->everyMinute();
+    ->cron(ScheduleInterval::cronEveryMinutes((int) config('gamesentry.scheduler.heartbeat_frequency_minutes', 1)));
 
 Schedule::command('model:prune', [
     '--model' => [MatchNotification::class],
