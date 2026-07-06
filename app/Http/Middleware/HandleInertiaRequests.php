@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\DiscordServer;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -50,6 +51,21 @@ class HandleInertiaRequests extends Middleware
                 'can' => [
                     'view_admin' => $user?->isAdmin() ?? false,
                 ],
+            ],
+            'navigation' => [
+                'discord_servers' => $user === null
+                    ? []
+                    : $user->discordServers()
+                        ->select(['id', 'name'])
+                        ->orderBy('name')
+                        ->limit(10)
+                        ->get()
+                        ->map(fn (DiscordServer $server) => [
+                            'id' => $server->id,
+                            'name' => $server->name,
+                        ])
+                        ->values()
+                        ->all(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

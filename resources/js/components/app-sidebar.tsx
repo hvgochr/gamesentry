@@ -1,13 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
-import {
-    Bot,
-    CreditCard,
-    FolderGit2,
-    LayoutGrid,
-    ShieldCheck,
-} from 'lucide-react';
+import { Bot, CreditCard, LayoutGrid, ShieldCheck } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
-import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -23,9 +16,10 @@ import { index as dashboard } from '@/routes/dashboard';
 import { index as admin } from '@/routes/dashboard/admin';
 import { index as billing } from '@/routes/dashboard/billing';
 import { index as discord } from '@/routes/dashboard/discord';
+import { show as discordServer } from '@/routes/dashboard/discord/servers';
 import type { NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
+const baseNavItems: NavItem[] = [
     {
         title: 'Dashboard',
         href: dashboard(),
@@ -43,16 +37,22 @@ const mainNavItems: NavItem[] = [
     },
 ];
 
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/hvgochr/gamesentry',
-        icon: FolderGit2,
-    },
-];
-
 export function AppSidebar() {
-    const { auth } = usePage().props;
+    const { auth, navigation } = usePage().props;
+    const mainNavItems = baseNavItems.map((item) => {
+        if (item.title !== 'Discord') {
+            return item;
+        }
+
+        return {
+            ...item,
+            items: navigation.discord_servers.map((server) => ({
+                title: server.name,
+                href: discordServer({ discordServer: server.id }),
+            })),
+        };
+    });
+
     const navItems = auth.can.view_admin
         ? [
               ...mainNavItems,
@@ -83,7 +83,6 @@ export function AppSidebar() {
             </SidebarContent>
 
             <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
                 <NavUser />
             </SidebarFooter>
         </Sidebar>

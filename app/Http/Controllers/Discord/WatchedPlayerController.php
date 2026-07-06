@@ -19,10 +19,35 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use Inertia\Response;
 use RuntimeException;
 
 class WatchedPlayerController extends Controller
 {
+    public function create(
+        Request $request,
+        DiscordServer $discordServer,
+        PlanLimitService $limits,
+    ): Response {
+        Gate::authorize('update', $discordServer);
+
+        /** @var User $user */
+        $user = $request->user();
+        $limitMessage = $this->watchedPlayerLimitMessage($user, $limits);
+
+        return Inertia::render('discord/servers/watched-players/create', [
+            'server' => $this->serverPayload($discordServer),
+            'gameOptions' => $this->gameOptions(),
+            'routingRegionOptions' => $this->routingRegionOptions(),
+            'canCreateWatchedPlayer' => $limitMessage === null && ! $user->isPaused(),
+            'limitMessage' => $user->isPaused()
+                ? 'Your account has been paused. Contact support before changing tracked players.'
+                : $limitMessage,
+            'status' => $request->session()->get('status'),
+            'error' => $request->session()->get('error'),
+        ]);
+    }
+
     public function store(
         StoreWatchedPlayerRequest $request,
         DiscordServer $discordServer,
@@ -80,6 +105,23 @@ class WatchedPlayerController extends Controller
         ]);
 
         return to_route('dashboard.discord.servers.show', $discordServer);
+    }
+
+    public function edit(
+        Request $request,
+        DiscordServer $discordServer,
+        WatchedPlayer $watchedPlayer,
+    ): Response {
+        Gate::authorize('update', $watchedPlayer);
+
+        return Inertia::render('discord/servers/watched-players/edit', [
+            'server' => $this->serverPayload($discordServer),
+            'watchedPlayer' => $this->watchedPlayerPayload($watchedPlayer),
+            'gameOptions' => $this->gameOptions(),
+            'routingRegionOptions' => $this->routingRegionOptions(),
+            'status' => $request->session()->get('status'),
+            'error' => $request->session()->get('error'),
+        ]);
     }
 
     public function update(
@@ -254,5 +296,82 @@ class WatchedPlayerController extends Controller
         throw ValidationException::withMessages([
             'game_name' => 'Your account has been paused. Contact support before changing tracked players.',
         ]);
+    }
+
+    /**
+     * @return array{id: int, name: string, discord_channel_name: string}
+     */
+    private function serverPayload(DiscordServer $discordServer): array
+    {
+        return [
+            'id' => $discordServer->id,
+            'name' => $discordServer->name,
+            'discord_channel_name' => $discordServer->discord_channel_name,
+        ];
+    }
+
+    /**
+     * @return array{
+     *     id: int,
+     *     game: string,
+     *     routing_region: string,
+     *     game_name: string,
+     *     tag_line: string,
+     *     discord_user_id: string,
+     *     is_active: bool
+     * }
+     */
+    private function watchedPlayerPayload(WatchedPlayer $watchedPlayer): array
+    {
+        return [
+            'id' => $watchedPlayer->id,
+            'game' => $watchedPlayer->game->value,
+            'routing_region' => $watchedPlayer->routing_region,
+            'game_name' => $watchedPlayer->game_name,
+            'tag_line' => $watchedPlayer->tag_line,
+            'discord_user_id' => $watchedPlayer->discord_user_id,
+            'is_active' => $watchedPlayer->is_active,
+        ];
+    }
+
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    private function gameOptions(): array
+    {
+        return [
+            [
+                'value' => Game::LeagueOfLegends->value,
+                'label' => 'League of Legends',
+            ],
+            [
+                'value' => Game::TeamfightTactics->value,
+                'label' => 'Teamfight Tactics',
+            ],
+        ];
+    }
+
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    private function routingRegionOptions(): array
+    {
+        return [
+            ['value' => 'americas', 'label' => 'Americas'],
+            ['value' => 'asia', 'label' => 'Asia'],
+            ['value' => 'europe', 'label' => 'Europe'],
+            ['value' => 'sea', 'label' => 'SEA'],
+        ];
+    }
+
+    private function watchedPlayerLimitMessage(User $user, PlanLimitService $limits): ?string
+    {
+        try {
+            $limits->ensureCanCreateWatchedPlayer($user);
+        } catch (PlanLimitExceededException $exception) {
+            return $exception->getMessage();
+        }
+
+        return null;
     }
 }

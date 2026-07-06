@@ -11,4 +11,14 @@ export type NavItem = {
     href: NonNullable<InertiaLinkProps['href']>;
     icon?: LucideIcon | null;
     isActive?: boolean;
+    items?: NavItem[];
+};
+
+export type NavigationServer = {
+    id: number;
+    name: string;
+};
+
+export type Navigation = {
+    discord_servers: NavigationServer[];
 };

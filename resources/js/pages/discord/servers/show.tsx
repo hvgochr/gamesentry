@@ -1,9 +1,18 @@
-import { Form, Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, Save, Trash2, UserPlus } from 'lucide-react';
+import { Head, Link } from '@inertiajs/react';
+import {
+    ArrowLeft,
+    Bell,
+    Clock,
+    Pencil,
+    Plus,
+    Settings,
+    Trash2,
+    UserRound,
+} from 'lucide-react';
 import WatchedPlayerController from '@/actions/App/Http/Controllers/Discord/WatchedPlayerController';
 import DestructiveActionDialog from '@/components/destructive-action-dialog';
 import Heading from '@/components/heading';
-import InputError from '@/components/input-error';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -12,19 +21,20 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { index as discordIndex } from '@/routes/dashboard/discord';
-
-type Option = {
-    value: string;
-    label: string;
-};
+import { edit as editServer } from '@/routes/dashboard/discord/servers';
+import {
+    create as createWatchedPlayer,
+    edit as editWatchedPlayer,
+} from '@/routes/dashboard/discord/servers/watched-players';
 
 type Server = {
     id: number;
     name: string;
     discord_guild_id: string;
     discord_channel_name: string;
+    bot_installed_at: string | null;
+    settings_synced_at: string | null;
 };
 
 type WatchedPlayer = {
@@ -56,59 +66,79 @@ type RecentNotification = {
 type Props = {
     server: Server;
     watchedPlayers: WatchedPlayer[];
-    gameOptions: Option[];
-    routingRegionOptions: Option[];
+    canCreateWatchedPlayer: boolean;
+    createWatchedPlayerLimitMessage: string | null;
     recentNotifications: RecentNotification[];
     status?: string;
     error?: string | null;
 };
 
 const statusStyles: Record<string, string> = {
-    sent: 'border-green-200 bg-green-50 text-green-700 dark:border-green-950 dark:bg-green-950/40 dark:text-green-300',
+    sent: 'border-green-200 text-green-700 dark:border-green-950 dark:text-green-300',
     pending:
-        'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-950 dark:bg-amber-950/40 dark:text-amber-300',
-    failed: 'border-red-200 bg-red-50 text-red-700 dark:border-red-950 dark:bg-red-950/40 dark:text-red-300',
+        'border-amber-200 text-amber-700 dark:border-amber-950 dark:text-amber-300',
+    failed: 'border-red-200 text-red-700 dark:border-red-950 dark:text-red-300',
 };
 
 function formatDateTime(value: string | null): string {
-    return value ? new Date(value).toLocaleString('fr-FR') : 'Jamais';
+    return value ? new Date(value).toLocaleString('fr-FR') : 'Never';
 }
 
 export default function DiscordServerShow({
     server,
     watchedPlayers,
-    gameOptions,
-    routingRegionOptions,
+    canCreateWatchedPlayer,
+    createWatchedPlayerLimitMessage,
     recentNotifications,
     status,
     error,
 }: Props) {
-    const playerForm = useForm({
-        game: gameOptions[0]?.value ?? 'lol',
-        routing_region: routingRegionOptions[0]?.value ?? 'europe',
-        game_name: '',
-        tag_line: '',
-        discord_user_id: '',
-        is_active: true,
-    });
-
     return (
         <>
             <Head title={`${server.name} - Tracked players`} />
 
             <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
                     <Heading
                         title={server.name}
                         description={`Messages will be sent in #${server.discord_channel_name}.`}
                     />
 
-                    <Button asChild variant="outline">
-                        <Link href={discordIndex()}>
-                            <ArrowLeft className="size-4" />
-                            Back to servers
-                        </Link>
-                    </Button>
+                    <div className="flex flex-wrap gap-3">
+                        <Button asChild variant="outline">
+                            <Link href={discordIndex()}>
+                                <ArrowLeft className="size-4" />
+                                Servers
+                            </Link>
+                        </Button>
+
+                        <Button asChild variant="outline">
+                            <Link
+                                href={editServer({ discordServer: server.id })}
+                            >
+                                <Settings className="size-4" />
+                                Settings
+                            </Link>
+                        </Button>
+
+                        {canCreateWatchedPlayer ? (
+                            <Button asChild>
+                                <Link
+                                    href={createWatchedPlayer({
+                                        discordServer: server.id,
+                                    })}
+                                >
+                                    <Plus className="size-4" />
+                                    Add player
+                                </Link>
+                            </Button>
+                        ) : (
+                            <Button disabled>
+                                <Plus className="size-4" />
+                                Add player
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
                 {status && (
@@ -117,199 +147,80 @@ export default function DiscordServerShow({
                     </div>
                 )}
 
-                {error && (
-                    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-950 dark:bg-red-950/40 dark:text-red-300">
-                        {error}
+                {(error || createWatchedPlayerLimitMessage) && (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-950 dark:bg-amber-950/40 dark:text-amber-300">
+                        {error ?? createWatchedPlayerLimitMessage}
                     </div>
                 )}
+
+                <div className="grid gap-4 md:grid-cols-3">
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">
+                                Tracked players
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-2xl font-semibold">
+                            {watchedPlayers.length}
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">
+                                Bot linked
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-sm text-muted-foreground">
+                            {formatDateTime(server.bot_installed_at)}
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">
+                                Settings synced
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-sm text-muted-foreground">
+                            {formatDateTime(server.settings_synced_at)}
+                        </CardContent>
+                    </Card>
+                </div>
 
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <UserPlus className="size-4" />
-                            Add a player to track
+                            <UserRound className="size-4" />
+                            Tracked players
                         </CardTitle>
                         <CardDescription>
-                            The player is initialized with its last known game
-                            to avoid any notification backfill.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <form
-                            className="grid gap-4 lg:grid-cols-2"
-                            onSubmit={(event) => {
-                                event.preventDefault();
-
-                                playerForm.post(
-                                    WatchedPlayerController.store.url({
-                                        discordServer: server.id,
-                                    }),
-                                    {
-                                        preserveScroll: true,
-                                        onSuccess: () =>
-                                            playerForm.reset(
-                                                'game_name',
-                                                'tag_line',
-                                                'discord_user_id',
-                                            ),
-                                    },
-                                );
-                            }}
-                        >
-                            <div className="grid gap-2">
-                                <Label htmlFor="game">Game</Label>
-                                <select
-                                    id="game"
-                                    className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                                    value={playerForm.data.game}
-                                    onChange={(event) =>
-                                        playerForm.setData(
-                                            'game',
-                                            event.target.value,
-                                        )
-                                    }
-                                >
-                                    {gameOptions.map((option) => (
-                                        <option
-                                            key={option.value}
-                                            value={option.value}
-                                        >
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </select>
-                                <InputError message={playerForm.errors.game} />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="routing_region">
-                                    Riot routing region
-                                </Label>
-                                <select
-                                    id="routing_region"
-                                    className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                                    value={playerForm.data.routing_region}
-                                    onChange={(event) =>
-                                        playerForm.setData(
-                                            'routing_region',
-                                            event.target.value,
-                                        )
-                                    }
-                                >
-                                    {routingRegionOptions.map((option) => (
-                                        <option
-                                            key={option.value}
-                                            value={option.value}
-                                        >
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </select>
-                                <InputError
-                                    message={playerForm.errors.routing_region}
-                                />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="game_name">gameName</Label>
-                                <input
-                                    id="game_name"
-                                    className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                                    value={playerForm.data.game_name}
-                                    onChange={(event) =>
-                                        playerForm.setData(
-                                            'game_name',
-                                            event.target.value,
-                                        )
-                                    }
-                                    placeholder="SummonerName"
-                                />
-                                <InputError
-                                    message={playerForm.errors.game_name}
-                                />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="tag_line">tagLine</Label>
-                                <input
-                                    id="tag_line"
-                                    className="h-9 rounded-md border border-input bg-transparent px-3 text-sm uppercase shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                                    value={playerForm.data.tag_line}
-                                    onChange={(event) =>
-                                        playerForm.setData(
-                                            'tag_line',
-                                            event.target.value.toUpperCase(),
-                                        )
-                                    }
-                                    placeholder="EUW"
-                                />
-                                <InputError
-                                    message={playerForm.errors.tag_line}
-                                />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="discord_user_id">
-                                    Discord user id
-                                </Label>
-                                <input
-                                    id="discord_user_id"
-                                    className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                                    value={playerForm.data.discord_user_id}
-                                    onChange={(event) =>
-                                        playerForm.setData(
-                                            'discord_user_id',
-                                            event.target.value,
-                                        )
-                                    }
-                                    placeholder="123456789012345678"
-                                />
-                                <InputError
-                                    message={playerForm.errors.discord_user_id}
-                                />
-                            </div>
-
-                            <div className="flex items-end">
-                                <label className="flex items-center gap-3 text-sm text-muted-foreground">
-                                    <input
-                                        type="checkbox"
-                                        checked={playerForm.data.is_active}
-                                        onChange={(event) =>
-                                            playerForm.setData(
-                                                'is_active',
-                                                event.target.checked,
-                                            )
-                                        }
-                                    />
-                                    Active tracking
-                                </label>
-                            </div>
-
-                            <div className="lg:col-span-2">
-                                <Button
-                                    type="submit"
-                                    disabled={playerForm.processing}
-                                >
-                                    Add player
-                                </Button>
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Tracked players</CardTitle>
-                        <CardDescription>
-                            Update the Riot IDs, the Discord member to ping, or
-                            stop monitoring.
+                            Open a player to update its Riot ID, Discord member,
+                            or tracking status.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {watchedPlayers.length === 0 ? (
-                            <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                                No players are currently being tracked on this
-                                server.
+                            <div className="flex flex-col gap-3 rounded-lg border border-dashed p-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                                <span>
+                                    No players are currently being tracked on
+                                    this server.
+                                </span>
+                                {canCreateWatchedPlayer ? (
+                                    <Button asChild variant="outline">
+                                        <Link
+                                            href={createWatchedPlayer({
+                                                discordServer: server.id,
+                                            })}
+                                        >
+                                            <Plus className="size-4" />
+                                            Add player
+                                        </Link>
+                                    </Button>
+                                ) : (
+                                    <Button variant="outline" disabled>
+                                        <Plus className="size-4" />
+                                        Add player
+                                    </Button>
+                                )}
                             </div>
                         ) : (
                             watchedPlayers.map((player) => (
@@ -317,234 +228,78 @@ export default function DiscordServerShow({
                                     key={player.id}
                                     className="rounded-xl border p-4"
                                 >
-                                    <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-                                        <div>
-                                            <p className="font-medium">
-                                                {player.game_name}#
-                                                {player.tag_line}
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {player.game.toUpperCase()} -
-                                                ping Discord{' '}
-                                                {player.discord_user_id}
-                                            </p>
+                                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                        <div className="space-y-2">
+                                            <div>
+                                                <p className="font-medium">
+                                                    {player.game_name}#
+                                                    {player.tag_line}
+                                                </p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {player.game.toUpperCase()}{' '}
+                                                    · {player.routing_region} ·
+                                                    ping{' '}
+                                                    {player.discord_user_id}
+                                                </p>
+                                            </div>
+
+                                            <div className="flex flex-wrap gap-2">
+                                                <Badge
+                                                    variant="outline"
+                                                    className={
+                                                        player.is_active
+                                                            ? 'border-green-200 text-green-700 dark:border-green-950 dark:text-green-300'
+                                                            : 'border-muted-foreground/30 text-muted-foreground'
+                                                    }
+                                                >
+                                                    {player.is_active
+                                                        ? 'Active'
+                                                        : 'Paused'}
+                                                </Badge>
+                                                <Badge variant="secondary">
+                                                    <Clock className="size-3" />
+                                                    Next poll{' '}
+                                                    {formatDateTime(
+                                                        player.next_poll_at,
+                                                    )}
+                                                </Badge>
+                                            </div>
                                         </div>
-                                        <div className="text-right text-xs text-muted-foreground">
-                                            <p>
-                                                Last game known :{' '}
-                                                {player.last_seen_match_id ??
-                                                    'aucun'}
-                                            </p>
-                                            <p>
-                                                Next poll :{' '}
-                                                {player.next_poll_at
-                                                    ? new Date(
-                                                          player.next_poll_at,
-                                                      ).toLocaleString('fr-FR')
-                                                    : 'non planifie'}
-                                            </p>
-                                        </div>
-                                    </div>
 
-                                    <Form
-                                        {...WatchedPlayerController.update.form(
-                                            {
-                                                discordServer: server.id,
-                                                watchedPlayer: player.id,
-                                            },
-                                        )}
-                                        options={{ preserveScroll: true }}
-                                        className="grid gap-4 lg:grid-cols-2"
-                                    >
-                                        {({ processing, errors }) => (
-                                            <>
-                                                <div className="grid gap-2">
-                                                    <Label
-                                                        htmlFor={`game-${player.id}`}
-                                                    >
-                                                        Game
-                                                    </Label>
-                                                    <select
-                                                        id={`game-${player.id}`}
-                                                        name="game"
-                                                        defaultValue={
-                                                            player.game
-                                                        }
-                                                        className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                                                    >
-                                                        {gameOptions.map(
-                                                            (option) => (
-                                                                <option
-                                                                    key={
-                                                                        option.value
-                                                                    }
-                                                                    value={
-                                                                        option.value
-                                                                    }
-                                                                >
-                                                                    {
-                                                                        option.label
-                                                                    }
-                                                                </option>
-                                                            ),
-                                                        )}
-                                                    </select>
-                                                    <InputError
-                                                        message={errors.game}
-                                                    />
-                                                </div>
-
-                                                <div className="grid gap-2">
-                                                    <Label
-                                                        htmlFor={`routing-${player.id}`}
-                                                    >
-                                                        Riot routing region
-                                                    </Label>
-                                                    <select
-                                                        id={`routing-${player.id}`}
-                                                        name="routing_region"
-                                                        defaultValue={
-                                                            player.routing_region
-                                                        }
-                                                        className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                                                    >
-                                                        {routingRegionOptions.map(
-                                                            (option) => (
-                                                                <option
-                                                                    key={
-                                                                        option.value
-                                                                    }
-                                                                    value={
-                                                                        option.value
-                                                                    }
-                                                                >
-                                                                    {
-                                                                        option.label
-                                                                    }
-                                                                </option>
-                                                            ),
-                                                        )}
-                                                    </select>
-                                                    <InputError
-                                                        message={
-                                                            errors.routing_region
-                                                        }
-                                                    />
-                                                </div>
-
-                                                <div className="grid gap-2">
-                                                    <Label
-                                                        htmlFor={`game-name-${player.id}`}
-                                                    >
-                                                        gameName
-                                                    </Label>
-                                                    <input
-                                                        id={`game-name-${player.id}`}
-                                                        name="game_name"
-                                                        defaultValue={
-                                                            player.game_name
-                                                        }
-                                                        className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                                                    />
-                                                    <InputError
-                                                        message={
-                                                            errors.game_name
-                                                        }
-                                                    />
-                                                </div>
-
-                                                <div className="grid gap-2">
-                                                    <Label
-                                                        htmlFor={`tag-line-${player.id}`}
-                                                    >
-                                                        tagLine
-                                                    </Label>
-                                                    <input
-                                                        id={`tag-line-${player.id}`}
-                                                        name="tag_line"
-                                                        defaultValue={
-                                                            player.tag_line
-                                                        }
-                                                        className="h-9 rounded-md border border-input bg-transparent px-3 text-sm uppercase shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                                                    />
-                                                    <InputError
-                                                        message={
-                                                            errors.tag_line
-                                                        }
-                                                    />
-                                                </div>
-
-                                                <div className="grid gap-2">
-                                                    <Label
-                                                        htmlFor={`discord-user-${player.id}`}
-                                                    >
-                                                        Discord user id
-                                                    </Label>
-                                                    <input
-                                                        id={`discord-user-${player.id}`}
-                                                        name="discord_user_id"
-                                                        defaultValue={
-                                                            player.discord_user_id
-                                                        }
-                                                        className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                                                    />
-                                                    <InputError
-                                                        message={
-                                                            errors.discord_user_id
-                                                        }
-                                                    />
-                                                </div>
-
-                                                <div className="flex items-end">
-                                                    <label className="flex items-center gap-3 text-sm text-muted-foreground">
-                                                        <input
-                                                            type="hidden"
-                                                            name="is_active"
-                                                            value="0"
-                                                        />
-                                                        <input
-                                                            type="checkbox"
-                                                            name="is_active"
-                                                            value="1"
-                                                            defaultChecked={
-                                                                player.is_active
-                                                            }
-                                                        />
-                                                        Active tracking
-                                                    </label>
-                                                </div>
-
-                                                <div className="flex flex-wrap gap-3 lg:col-span-2">
-                                                    <Button
-                                                        type="submit"
-                                                        variant="outline"
-                                                        disabled={processing}
-                                                    >
-                                                        <Save className="size-4" />
-                                                        Save
-                                                    </Button>
-                                                </div>
-                                            </>
-                                        )}
-                                    </Form>
-
-                                    <div className="mt-3">
-                                        <DestructiveActionDialog
-                                            form={WatchedPlayerController.destroy.form(
-                                                {
-                                                    discordServer: server.id,
-                                                    watchedPlayer: player.id,
-                                                },
-                                            )}
-                                            title={`Remove ${player.game_name}#${player.tag_line}?`}
-                                            description="This player will no longer be tracked on this Discord server. Existing notification history will also be removed."
-                                            confirmLabel="Remove player"
-                                        >
-                                            <Button variant="destructive">
-                                                <Trash2 className="size-4" />
-                                                Remove
+                                        <div className="flex flex-wrap gap-3">
+                                            <Button asChild variant="outline">
+                                                <Link
+                                                    href={editWatchedPlayer({
+                                                        discordServer:
+                                                            server.id,
+                                                        watchedPlayer:
+                                                            player.id,
+                                                    })}
+                                                >
+                                                    <Pencil className="size-4" />
+                                                    Edit
+                                                </Link>
                                             </Button>
-                                        </DestructiveActionDialog>
+
+                                            <DestructiveActionDialog
+                                                form={WatchedPlayerController.destroy.form(
+                                                    {
+                                                        discordServer:
+                                                            server.id,
+                                                        watchedPlayer:
+                                                            player.id,
+                                                    },
+                                                )}
+                                                title={`Remove ${player.game_name}#${player.tag_line}?`}
+                                                description="This player will no longer be tracked on this Discord server. Existing notification history will also be removed."
+                                                confirmLabel="Remove player"
+                                            >
+                                                <Button variant="destructive">
+                                                    <Trash2 className="size-4" />
+                                                    Remove
+                                                </Button>
+                                            </DestructiveActionDialog>
+                                        </div>
                                     </div>
                                 </div>
                             ))
@@ -554,7 +309,10 @@ export default function DiscordServerShow({
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Notifications history</CardTitle>
+                        <CardTitle className="flex items-center gap-2">
+                            <Bell className="size-4" />
+                            Notifications history
+                        </CardTitle>
                         <CardDescription>
                             The latest messages posted or sent to this Discord
                             server.
@@ -580,15 +338,20 @@ export default function DiscordServerShow({
                                             </p>
                                             <p className="text-sm text-muted-foreground">
                                                 {notification.game.toUpperCase()}{' '}
-                                                - {notification.riot_match_id}
+                                                · {notification.riot_match_id}
                                             </p>
                                         </div>
 
-                                        <div
-                                            className={`rounded-full border px-3 py-1 text-xs font-medium ${statusStyles[notification.status] ?? statusStyles.pending}`}
+                                        <Badge
+                                            variant="outline"
+                                            className={
+                                                statusStyles[
+                                                    notification.status
+                                                ] ?? statusStyles.pending
+                                            }
                                         >
                                             {notification.status}
-                                        </div>
+                                        </Badge>
                                     </div>
 
                                     <div className="mt-3 space-y-2 text-sm">
@@ -603,11 +366,11 @@ export default function DiscordServerShow({
                                         )}
 
                                         <p className="text-xs text-muted-foreground">
-                                            Created at{' '}
+                                            Created{' '}
                                             {formatDateTime(
                                                 notification.created_at,
                                             )}{' '}
-                                            - Delivered at{' '}
+                                            · Delivered{' '}
                                             {formatDateTime(
                                                 notification.delivered_at,
                                             )}
