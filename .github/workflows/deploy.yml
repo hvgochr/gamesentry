@@ -53,21 +53,10 @@ jobs:
             CURRENT_IMAGE="$(grep '^GAMESENTRY_IMAGE=' .env.production | cut -d= -f2-)"
             NEW_IMAGE="ghcr.io/hvgochr/gamesentry:${IMAGE_SHA}"
 
-            rollback_env() {
-              echo "Deployment failed; restoring previous image reference."
+            export GAMESENTRY_IMAGE="${NEW_IMAGE}"
 
-              sed -i \
-                "s|^GAMESENTRY_IMAGE=.*|GAMESENTRY_IMAGE=${CURRENT_IMAGE}|" \
-                .env.production
-            }
-
-            trap rollback_env ERR
-
-            echo "Deploying ${NEW_IMAGE}"
-
-            sed -i \
-              "s|^GAMESENTRY_IMAGE=.*|GAMESENTRY_IMAGE=${NEW_IMAGE}|" \
-              .env.production
+            echo "Current image: ${CURRENT_IMAGE}"
+            echo "Deploying: ${NEW_IMAGE}"
 
             docker compose \
               --env-file .env.production \
@@ -83,21 +72,23 @@ jobs:
               php artisan migrate --force
 
             docker compose \
-            --env-file .env.production \
-            -p gamesentry \
-            -f compose.prod.yaml \
-            up -d \
-            --force-recreate \
-            --remove-orphans \
-            web worker scheduler
+              --env-file .env.production \
+              -p gamesentry \
+              -f compose.prod.yaml \
+              up -d \
+              --force-recreate \
+              --remove-orphans \
+              web worker scheduler
+
+            sed -i \
+              "s|^GAMESENTRY_IMAGE=.*|GAMESENTRY_IMAGE=${NEW_IMAGE}|" \
+              .env.production
 
             docker compose \
               --env-file .env.production \
               -p gamesentry \
               -f compose.prod.yaml \
               ps
-
-            trap - ERR
 
             echo "Deployment complete: ${IMAGE_SHA}"
           EOF
