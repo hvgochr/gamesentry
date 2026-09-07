@@ -120,6 +120,6 @@ RUN composer dump-autoload \
         bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache
 
-EXPOSE 8080
+EXPOSE 80
 
 CMD ["frankenphp", "php-server", "-r", "public/"]
