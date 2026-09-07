@@ -68,7 +68,11 @@ jobs:
               --env-file .env.production \
               -p gamesentry \
               -f compose.prod.yaml \
-              run --rm web \
+              run \
+              --rm \
+              --interactive=false \
+              --no-tty \
+              web \
               php artisan migrate --force
 
             docker compose \
