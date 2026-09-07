@@ -25,8 +25,6 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 FROM php-base AS development
 
-ENV APP_ENV=local
-
 COPY composer.json composer.lock ./
 
 RUN composer install \
