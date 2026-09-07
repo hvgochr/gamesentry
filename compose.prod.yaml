@@ -3,7 +3,7 @@ services:
     image: ${GAMESENTRY_IMAGE}
     restart: unless-stopped
     env_file:
-      - .env
+      - .env.production
     environment:
       SERVER_NAME: ":8080"
     expose:
@@ -30,7 +30,7 @@ services:
       - --tries=3
       - --timeout=120
     env_file:
-      - .env
+      - .env.production
     volumes:
       - ./docker/php/php.prod.ini:/etc/frankenphp/php.d/99-app.ini:ro
     depends_on:
@@ -47,7 +47,7 @@ services:
       - artisan
       - schedule:work
     env_file:
-      - .env
+      - .env.production
     volumes:
       - ./docker/php/php.prod.ini:/etc/frankenphp/php.d/99-app.ini:ro
     depends_on:
