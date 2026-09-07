@@ -83,11 +83,13 @@ jobs:
               php artisan migrate --force
 
             docker compose \
-              --env-file .env.production \
-              -p gamesentry \
-              -f compose.prod.yaml \
-              up -d \
-              --remove-orphans
+            --env-file .env.production \
+            -p gamesentry \
+            -f compose.prod.yaml \
+            up -d \
+            --force-recreate \
+            --remove-orphans \
+            web worker scheduler
 
             docker compose \
               --env-file .env.production \
