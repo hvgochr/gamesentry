@@ -1,0 +1,111 @@
+name: deploy
+
+on:
+  workflow_run:
+    workflows:
+      - docker
+    types:
+      - completed
+    branches:
+      - main
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    runs-on: ubuntu-latest
+
+    environment:
+      name: production
+      url: https://gamesentry.charradehugo.com
+
+    steps:
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          IMAGE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          ssh "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "IMAGE_SHA='${IMAGE_SHA}' bash -s" <<'EOF'
+            set -euo pipefail
+
+            cd /srv/gamesentry
+
+            CURRENT_IMAGE="$(grep '^GAMESENTRY_IMAGE=' .env.production | cut -d= -f2-)"
+            NEW_IMAGE="ghcr.io/hvgochr/gamesentry:${IMAGE_SHA}"
+
+            rollback_env() {
+              echo "Deployment failed; restoring previous image reference."
+
+              sed -i \
+                "s|^GAMESENTRY_IMAGE=.*|GAMESENTRY_IMAGE=${CURRENT_IMAGE}|" \
+                .env.production
+            }
+
+            trap rollback_env ERR
+
+            echo "Deploying ${NEW_IMAGE}"
+
+            sed -i \
+              "s|^GAMESENTRY_IMAGE=.*|GAMESENTRY_IMAGE=${NEW_IMAGE}|" \
+              .env.production
+
+            docker compose \
+              --env-file .env.production \
+              -p gamesentry \
+              -f compose.prod.yaml \
+              pull
+
+            docker compose \
+              --env-file .env.production \
+              -p gamesentry \
+              -f compose.prod.yaml \
+              run --rm web \
+              php artisan migrate --force
+
+            docker compose \
+              --env-file .env.production \
+              -p gamesentry \
+              -f compose.prod.yaml \
+              up -d \
+              --remove-orphans
+
+            docker compose \
+              --env-file .env.production \
+              -p gamesentry \
+              -f compose.prod.yaml \
+              ps
+
+            trap - ERR
+
+            echo "Deployment complete: ${IMAGE_SHA}"
+          EOF
+
+      - name: Verify deployment
+        run: |
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --retry 5 \
+            --retry-delay 2 \
+            https://gamesentry.charradehugo.com/up
