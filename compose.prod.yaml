@@ -1,0 +1,87 @@
+services:
+  web:
+    image: ${GAMESENTRY_IMAGE}
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      SERVER_NAME: ":8080"
+    expose:
+      - "8080"
+    volumes:
+      - ./docker/php/php.prod.ini:/etc/frankenphp/php.d/99-app.ini:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      internal:
+      proxy:
+        aliases:
+          - gamesentry-web
+
+  worker:
+    image: ${GAMESENTRY_IMAGE}
+    restart: unless-stopped
+    command:
+      - php
+      - artisan
+      - queue:work
+      - --sleep=3
+      - --tries=3
+      - --timeout=120
+    env_file:
+      - .env
+    volumes:
+      - ./docker/php/php.prod.ini:/etc/frankenphp/php.d/99-app.ini:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+
+  scheduler:
+    image: ${GAMESENTRY_IMAGE}
+    restart: unless-stopped
+    command:
+      - php
+      - artisan
+      - schedule:work
+    env_file:
+      - .env
+    volumes:
+      - ./docker/php/php.prod.ini:/etc/frankenphp/php.d/99-app.ini:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+
+  postgres:
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+volumes:
+  postgres_data:
+
+networks:
+  internal:
+    internal: true
+  proxy:
+    external: true

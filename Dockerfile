@@ -53,23 +53,6 @@ COPY . .
 
 
 # ---------------------------------------------------------------------------
-# Frontend build
-# ---------------------------------------------------------------------------
-
-FROM node:22-bookworm-slim AS frontend-build
-
-WORKDIR /app
-
-COPY package.json package-lock.json ./
-
-RUN npm ci
-
-COPY . .
-
-RUN npm run build
-
-
-# ---------------------------------------------------------------------------
 # Composer production dependencies
 # ---------------------------------------------------------------------------
 
@@ -86,13 +69,38 @@ RUN composer install \
 
 
 # ---------------------------------------------------------------------------
+# Frontend production build
+# ---------------------------------------------------------------------------
+
+FROM php-base AS frontend-build
+
+# Node 22 and this image are both Debian Bookworm based, so copying /usr/local
+# gives us node, npm and their global runtime files without installing Node
+# again through an external package repository.
+COPY --from=node:22-bookworm-slim /usr/local/ /usr/local/
+
+COPY --from=composer-production /app/vendor /app/vendor
+
+COPY composer.json composer.lock ./
+COPY package.json package-lock.json ./
+
+COPY . .
+
+RUN npm ci
+
+RUN composer dump-autoload \
+    --no-dev \
+    --classmap-authoritative
+
+RUN npm run build
+
+
+# ---------------------------------------------------------------------------
 # Production
 # ---------------------------------------------------------------------------
 
 FROM php-base AS production
 
-ENV APP_ENV=production
-ENV APP_DEBUG=false
 ENV SERVER_NAME=:8080
 
 COPY --from=composer-production /app/vendor /app/vendor
