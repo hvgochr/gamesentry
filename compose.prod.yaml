@@ -6,6 +6,18 @@ services:
       - .env.production
     expose:
       - "80"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "php",
+          "-r",
+          "$$r = @file_get_contents('http://127.0.0.1/up'); exit($$r === false ? 1 : 0);"
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     volumes:
       - ./docker/php/php.prod.ini:/etc/frankenphp/php.d/99-app.ini:ro
     depends_on:
@@ -29,6 +41,8 @@ services:
       - --timeout=120
     env_file:
       - .env.production
+    healthcheck:
+      disable: true
     volumes:
       - ./docker/php/php.prod.ini:/etc/frankenphp/php.d/99-app.ini:ro
     depends_on:
@@ -46,6 +60,8 @@ services:
       - schedule:work
     env_file:
       - .env.production
+    healthcheck:
+      disable: true
     volumes:
       - ./docker/php/php.prod.ini:/etc/frankenphp/php.d/99-app.ini:ro
     depends_on:

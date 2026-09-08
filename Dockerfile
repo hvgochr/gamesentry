@@ -101,8 +101,6 @@ RUN npm run build
 
 FROM php-base AS production
 
-ENV SERVER_NAME=:8080
-
 COPY --from=composer-production /app/vendor /app/vendor
 
 COPY . .
