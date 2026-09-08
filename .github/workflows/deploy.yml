@@ -24,6 +24,11 @@ jobs:
       url: https://gamesentry.charradehugo.com
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
       - name: Configure SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
@@ -37,6 +42,19 @@ jobs:
 
           printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
+
+      - name: Upload deployment files
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+        run: |
+          scp \
+            compose.prod.yaml \
+            "${DEPLOY_USER}@${DEPLOY_HOST}:/srv/gamesentry/compose.prod.yaml"
+
+          scp \
+            docker/php/php.prod.ini \
+            "${DEPLOY_USER}@${DEPLOY_HOST}:/srv/gamesentry/docker/php/php.prod.ini"
 
       - name: Deploy
         env:
