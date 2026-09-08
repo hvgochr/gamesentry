@@ -24,9 +24,11 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - internal
-      - egress
-      - proxy
+      internal:
+      egress:
+      proxy:
+        aliases:
+          - gamesentry-web
 
   worker:
     image: ${GAMESENTRY_IMAGE}
