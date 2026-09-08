@@ -24,10 +24,9 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      internal:
-      proxy:
-        aliases:
-          - gamesentry-web
+      - internal
+      - egress
+      - proxy
 
   worker:
     image: ${GAMESENTRY_IMAGE}
@@ -50,6 +49,7 @@ services:
         condition: service_healthy
     networks:
       - internal
+      - egress
 
   scheduler:
     image: ${GAMESENTRY_IMAGE}
@@ -97,5 +97,6 @@ volumes:
 networks:
   internal:
     internal: true
+  egress:
   proxy:
     external: true
