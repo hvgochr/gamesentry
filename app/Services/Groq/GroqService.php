@@ -22,17 +22,22 @@ class GroqService
 
         $response = $this->request()->post('/chat/completions', [
             'model' => config('services.groq.model'),
-            'temperature' => 0.9,
-            'max_completion_tokens' => 120,
+            'temperature' => 0.7,
+            'reasoning_effort' => 'low',
+            'include_reasoning' => false,
+            'max_completion_tokens' => 300,
             'messages' => [
                 [
                     'role' => 'system',
                     'content' => implode("\n", [
                         'You are GameSentry.',
-                        'Write a short, funny and playful roast in French for your friends on Discord.',
-                        'Keep it 1 or 2 sentences.',
-                        'Never use content that is discriminatory, harassing, or based on protected characteristics.',
-                        'Do not make up any statistics that are not included in the game summary.',
+                        'Write one short, funny and playful roast in French for friends on Discord.',
+                        'Use the player\'s Riot ID and relevant match statistics when useful.',
+                        'Keep it under 250 characters.',
+                        'Return only the roast.',
+                        'Always produce a complete sentence.',
+                        'Never invent statistics.',
+                        'Never use discriminatory or protected-characteristic-based insults.'
                     ]),
                 ],
                 [
