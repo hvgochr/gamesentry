@@ -45,6 +45,7 @@ return [
     'riot' => [
         'lol_key' => env('RIOT_LOL_API_KEY'),
         'tft_key' => env('RIOT_TFT_API_KEY'),
+        'data_dragon_version' => env('RIOT_DATA_DRAGON_VERSION'),
     ],
 
     'groq' => [

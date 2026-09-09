@@ -10,6 +10,8 @@ use RuntimeException;
 
 class MatchSummaryService
 {
+    public function __construct(private readonly DataDragonService $dataDragon) {}
+
     /**
      * @param  array<string, mixed>  $match
      * @return array<string, mixed>
@@ -29,17 +31,37 @@ class MatchSummaryService
     public function discordEmbed(array $summary): array
     {
         $fields = $this->normalizeEmbedFields($summary['embed_fields'] ?? null);
+        $author = [
+            'name' => $summary['riot_id'],
+        ];
 
-        return [
+        $champion = data_get($summary, 'player.champion');
+        $championImageUrl = null;
+
+        if (is_string($champion) && $champion !== '') {
+            $championImageUrl = $this->dataDragon->championImageUrl($champion);
+            $author['icon_url'] = $championImageUrl;
+        }
+
+        $embed = [
             'title' => $summary['title'],
             'description' => $summary['summary_line'],
             'color' => $summary['color'],
+            'author' => $author,
             'fields' => $fields,
             'footer' => [
                 'text' => 'Gamesentry',
             ],
             'timestamp' => $summary['finished_at'],
         ];
+
+        if ($championImageUrl !== null) {
+            $embed['thumbnail'] = [
+                'url' => $championImageUrl,
+            ];
+        }
+
+        return $embed;
     }
 
     /**
