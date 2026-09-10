@@ -68,6 +68,8 @@ RUN npm run build
 
 FROM php-base AS production
 
+COPY docker/php/php.prod.ini /etc/frankenphp/php.d/99-app.ini
+
 COPY --from=composer-production /app/vendor /app/vendor
 
 COPY . .
