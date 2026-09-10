@@ -27,6 +27,8 @@ class WatchedPlayerFactory extends Factory
             'game_name' => fake()->unique()->userName(),
             'tag_line' => strtoupper(fake()->bothify('??##')),
             'riot_puuid' => (string) Str::uuid(),
+            'profile_icon_id' => fake()->numberBetween(1, 6000),
+            'profile_refreshed_at' => now()->subMinutes(fake()->numberBetween(10, 180)),
             'discord_user_id' => $this->snowflake(),
             'last_seen_match_id' => $this->matchIdFor(Game::LeagueOfLegends),
             'last_polled_at' => now()->subMinutes(fake()->numberBetween(10, 180)),
@@ -50,6 +52,8 @@ class WatchedPlayerFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'game' => Game::TeamfightTactics->value,
             'routing_region' => 'europe',
+            'profile_icon_id' => null,
+            'profile_refreshed_at' => null,
             'last_seen_match_id' => $this->matchIdFor(Game::TeamfightTactics),
         ]);
     }

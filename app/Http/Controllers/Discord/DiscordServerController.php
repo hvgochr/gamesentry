@@ -11,6 +11,7 @@ use App\Models\WatchedPlayer;
 use App\Services\Discord\DiscordService;
 use App\Services\Plans\Exceptions\PlanLimitExceededException;
 use App\Services\Plans\PlanLimitService;
+use App\Services\Riot\RiotAssetService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -66,8 +67,12 @@ class DiscordServerController extends Controller
         ]);
     }
 
-    public function show(Request $request, DiscordServer $discordServer, PlanLimitService $limits): Response
-    {
+    public function show(
+        Request $request,
+        DiscordServer $discordServer,
+        PlanLimitService $limits,
+        RiotAssetService $assets,
+    ): Response {
         Gate::authorize('view', $discordServer);
 
         /** @var User $user */
@@ -86,7 +91,7 @@ class DiscordServerController extends Controller
             'watchedPlayers' => $discordServer->watchedPlayers()
                 ->orderBy('game_name')
                 ->get()
-                ->map(fn (WatchedPlayer $watchedPlayer) => $this->watchedPlayerPayload($watchedPlayer))
+                ->map(fn (WatchedPlayer $watchedPlayer) => $this->watchedPlayerPayload($watchedPlayer, $assets))
                 ->values()
                 ->all(),
             'canCreateWatchedPlayer' => $limitMessage === null && ! $user->isPaused(),
@@ -96,7 +101,7 @@ class DiscordServerController extends Controller
             'status' => $request->session()->get('status'),
             'error' => $request->session()->get('error'),
             'recentNotifications' => MatchNotification::query()
-                ->with('watchedPlayer:id,game_name,tag_line')
+                ->with('watchedPlayer:id,game_name,tag_line,profile_icon_id')
                 ->whereBelongsTo($discordServer)
                 ->latest()
                 ->limit(8)
@@ -109,6 +114,13 @@ class DiscordServerController extends Controller
                     'player_name' => $notification->watchedPlayer === null
                         ? null
                         : "{$notification->watchedPlayer->game_name}#{$notification->watchedPlayer->tag_line}",
+                    'profile_icon_url' => $assets->profileIconUrl(
+                        $notification->watchedPlayer?->profile_icon_id,
+                    ),
+                    'champion_icon_url' => $assets->championIconUrl(
+                        $notification->game,
+                        data_get($notification->match_payload, 'player.champion'),
+                    ),
                     'roast_text' => $notification->roast_text,
                     'failure_reason' => $notification->failure_reason,
                     'delivered_at' => $notification->delivered_at?->toIso8601String(),
@@ -294,6 +306,8 @@ class DiscordServerController extends Controller
      *     game_name: string,
      *     tag_line: string,
      *     discord_user_id: string,
+     *     profile_icon_url: string|null,
+     *     profile_refreshed_at: string|null,
      *     last_seen_match_id: string|null,
      *     last_polled_at: string|null,
      *     next_poll_at: string|null,
@@ -301,7 +315,7 @@ class DiscordServerController extends Controller
      *     is_active: bool
      * }
      */
-    private function watchedPlayerPayload(WatchedPlayer $watchedPlayer): array
+    private function watchedPlayerPayload(WatchedPlayer $watchedPlayer, RiotAssetService $assets): array
     {
         return [
             'id' => $watchedPlayer->id,
@@ -310,6 +324,8 @@ class DiscordServerController extends Controller
             'game_name' => $watchedPlayer->game_name,
             'tag_line' => $watchedPlayer->tag_line,
             'discord_user_id' => $watchedPlayer->discord_user_id,
+            'profile_icon_url' => $assets->profileIconUrl($watchedPlayer->profile_icon_id),
+            'profile_refreshed_at' => $watchedPlayer->profile_refreshed_at?->toIso8601String(),
             'last_seen_match_id' => $watchedPlayer->last_seen_match_id,
             'last_polled_at' => $watchedPlayer->last_polled_at?->toIso8601String(),
             'next_poll_at' => $watchedPlayer->next_poll_at?->toIso8601String(),

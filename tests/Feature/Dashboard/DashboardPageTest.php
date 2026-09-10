@@ -22,23 +22,35 @@ class DashboardPageTest extends TestCase
 
     public function test_dashboard_shows_only_the_authenticated_users_operational_summary(): void
     {
+        config()->set('services.riot.data_dragon_version', '16.17.1');
+
         $user = User::factory()->create();
         $server = DiscordServer::factory()->for($user)->create([
             'name' => 'User Server',
         ]);
         $activePlayer = WatchedPlayer::factory()->for($server)->create([
             'game_name' => 'ActivePlayer',
+            'profile_icon_id' => 4567,
         ]);
         WatchedPlayer::factory()->inactive()->for($server)->create();
 
         MatchNotification::factory()->sent()->create([
             'watched_player_id' => $activePlayer->id,
+            'match_payload' => [
+                'player' => ['champion' => 'Aatrox'],
+            ],
         ]);
         MatchNotification::factory()->pending()->create([
             'watched_player_id' => $activePlayer->id,
+            'match_payload' => [
+                'player' => ['champion' => 'Aatrox'],
+            ],
         ]);
         MatchNotification::factory()->failed()->create([
             'watched_player_id' => $activePlayer->id,
+            'match_payload' => [
+                'player' => ['champion' => 'Aatrox'],
+            ],
         ]);
 
         $otherUser = User::factory()->create();
@@ -62,6 +74,14 @@ class DashboardPageTest extends TestCase
                 ->where('stats.pending_notifications_count', 1)
                 ->where('stats.failed_notifications_count', 1)
                 ->has('recentNotifications', 3)
+                ->where(
+                    'recentNotifications.0.profile_icon_url',
+                    'https://ddragon.leagueoflegends.com/cdn/16.17.1/img/profileicon/4567.png',
+                )
+                ->where(
+                    'recentNotifications.0.champion_icon_url',
+                    'https://ddragon.leagueoflegends.com/cdn/16.17.1/img/champion/Aatrox.png',
+                )
                 ->where('navigation.discord_servers.0.name', 'User Server'));
     }
 }

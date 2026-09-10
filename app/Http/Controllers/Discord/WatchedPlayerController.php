@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Discord;
 
+use App\Actions\Riot\RefreshWatchedPlayerProfile;
 use App\Enums\Game;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Discord\StoreWatchedPlayerRequest;
@@ -13,6 +14,9 @@ use App\Services\Discord\DiscordService;
 use App\Services\Plans\Exceptions\PlanLimitExceededException;
 use App\Services\Plans\PlanLimitService;
 use App\Services\Riot\RiotApiService;
+use App\Services\Riot\RiotAssetService;
+use App\Services\Riot\RiotProfileService;
+use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -53,6 +57,7 @@ class WatchedPlayerController extends Controller
         DiscordServer $discordServer,
         DiscordService $discord,
         RiotApiService $riot,
+        RiotProfileService $profiles,
         PlanLimitService $limits,
     ): RedirectResponse {
         Gate::authorize('update', $discordServer);
@@ -65,6 +70,7 @@ class WatchedPlayerController extends Controller
             $discordServer,
             $discord,
             $riot,
+            $profiles,
         );
 
         DB::transaction(function () use ($request, $discordServer, $payload, $limits): void {
@@ -90,6 +96,8 @@ class WatchedPlayerController extends Controller
                 'game_name' => $payload['game_name'],
                 'tag_line' => $payload['tag_line'],
                 'riot_puuid' => $payload['riot_puuid'],
+                'profile_icon_id' => $payload['profile_icon_id'],
+                'profile_refreshed_at' => $payload['profile_refreshed_at'],
                 'discord_user_id' => $payload['discord_user_id'],
                 'last_seen_match_id' => $payload['last_seen_match_id'],
                 'last_polled_at' => null,
@@ -111,12 +119,13 @@ class WatchedPlayerController extends Controller
         Request $request,
         DiscordServer $discordServer,
         WatchedPlayer $watchedPlayer,
+        RiotAssetService $assets,
     ): Response {
         Gate::authorize('update', $watchedPlayer);
 
         return Inertia::render('discord/servers/watched-players/edit', [
             'server' => $this->serverPayload($discordServer),
-            'watchedPlayer' => $this->watchedPlayerPayload($watchedPlayer),
+            'watchedPlayer' => $this->watchedPlayerPayload($watchedPlayer, $assets),
             'gameOptions' => $this->gameOptions(),
             'routingRegionOptions' => $this->routingRegionOptions(),
             'status' => $request->session()->get('status'),
@@ -130,6 +139,7 @@ class WatchedPlayerController extends Controller
         WatchedPlayer $watchedPlayer,
         DiscordService $discord,
         RiotApiService $riot,
+        RiotProfileService $profiles,
     ): RedirectResponse {
         Gate::authorize('update', $watchedPlayer);
 
@@ -140,6 +150,7 @@ class WatchedPlayerController extends Controller
             $discordServer,
             $discord,
             $riot,
+            $profiles,
         );
 
         if ($discordServer->watchedPlayers()
@@ -158,6 +169,8 @@ class WatchedPlayerController extends Controller
             'game_name' => $payload['game_name'],
             'tag_line' => $payload['tag_line'],
             'riot_puuid' => $payload['riot_puuid'],
+            'profile_icon_id' => $payload['profile_icon_id'],
+            'profile_refreshed_at' => $payload['profile_refreshed_at'],
             'discord_user_id' => $payload['discord_user_id'],
             'last_seen_match_id' => $payload['last_seen_match_id'],
             'next_poll_at' => now()->addSeconds($watchedPlayer->poll_interval_seconds),
@@ -170,6 +183,38 @@ class WatchedPlayerController extends Controller
         ]);
 
         return to_route('dashboard.discord.servers.show', $discordServer);
+    }
+
+    public function refresh(
+        DiscordServer $discordServer,
+        WatchedPlayer $watchedPlayer,
+        RefreshWatchedPlayerProfile $refreshProfile,
+    ): RedirectResponse {
+        Gate::authorize('update', $watchedPlayer);
+
+        try {
+            $refreshProfile->handle($watchedPlayer);
+        } catch (RuntimeException $exception) {
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => $exception->getMessage(),
+            ]);
+
+            return to_route('dashboard.discord.servers.watched-players.edit', [
+                $discordServer,
+                $watchedPlayer,
+            ]);
+        }
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Riot profile refreshed.',
+        ]);
+
+        return to_route('dashboard.discord.servers.watched-players.edit', [
+            $discordServer,
+            $watchedPlayer,
+        ]);
     }
 
     public function destroy(
@@ -197,6 +242,8 @@ class WatchedPlayerController extends Controller
      *     game_name: string,
      *     tag_line: string,
      *     riot_puuid: string,
+     *     profile_icon_id: int|null,
+     *     profile_refreshed_at: CarbonInterface,
      *     discord_user_id: string,
      *     last_seen_match_id: string|null,
      *     is_active: bool
@@ -207,6 +254,7 @@ class WatchedPlayerController extends Controller
         DiscordServer $discordServer,
         DiscordService $discord,
         RiotApiService $riot,
+        RiotProfileService $profiles,
     ): array {
         $game = Game::from($validated['game']);
         $routingRegion = strtolower($validated['routing_region']);
@@ -264,12 +312,27 @@ class WatchedPlayerController extends Controller
             ]);
         }
 
+        try {
+            $profileIconId = $profiles->profileIconId(
+                $game,
+                $routingRegion,
+                $account['puuid'],
+                $latestMatchId,
+            );
+        } catch (RuntimeException $exception) {
+            throw ValidationException::withMessages([
+                'game_name' => $exception->getMessage(),
+            ]);
+        }
+
         return [
             'game' => $game,
             'routing_region' => $routingRegion,
             'game_name' => $account['gameName'] ?? $gameName,
             'tag_line' => $account['tagLine'] ?? $tagLine,
             'riot_puuid' => $account['puuid'],
+            'profile_icon_id' => $profileIconId,
+            'profile_refreshed_at' => now(),
             'discord_user_id' => $discordUserId,
             'last_seen_match_id' => $latestMatchId,
             'is_active' => $isActive,
@@ -318,10 +381,12 @@ class WatchedPlayerController extends Controller
      *     game_name: string,
      *     tag_line: string,
      *     discord_user_id: string,
+     *     profile_icon_url: string|null,
+     *     profile_refreshed_at: string|null,
      *     is_active: bool
      * }
      */
-    private function watchedPlayerPayload(WatchedPlayer $watchedPlayer): array
+    private function watchedPlayerPayload(WatchedPlayer $watchedPlayer, RiotAssetService $assets): array
     {
         return [
             'id' => $watchedPlayer->id,
@@ -330,6 +395,8 @@ class WatchedPlayerController extends Controller
             'game_name' => $watchedPlayer->game_name,
             'tag_line' => $watchedPlayer->tag_line,
             'discord_user_id' => $watchedPlayer->discord_user_id,
+            'profile_icon_url' => $assets->profileIconUrl($watchedPlayer->profile_icon_id),
+            'profile_refreshed_at' => $watchedPlayer->profile_refreshed_at?->toIso8601String(),
             'is_active' => $watchedPlayer->is_active,
         ];
     }

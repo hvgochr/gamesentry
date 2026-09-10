@@ -55,6 +55,46 @@ class RiotApiService
     }
 
     /**
+     * @return array{puuid: string, gameName?: string, tagLine?: string}|null
+     */
+    public function accountByPuuid(Game $game, string $routingRegion, string $puuid): ?array
+    {
+        $this->ensureConfigured($game);
+
+        $response = $this->request($game, $routingRegion)->get(
+            '/riot/account/v1/accounts/by-puuid/'.rawurlencode($puuid),
+        );
+
+        if ($response->status() === 404) {
+            return null;
+        }
+
+        $this->throwForFailedResponse($response, 'Unable to retrieve this Riot profile.');
+
+        return $response->json();
+    }
+
+    /**
+     * @return array{id: string, accountId: string, puuid: string, profileIconId: int, revisionDate: int, summonerLevel: int}|null
+     */
+    public function summonerByPuuid(string $platformRegion, string $puuid): ?array
+    {
+        $this->ensureConfigured(Game::LeagueOfLegends);
+
+        $response = $this->request(Game::LeagueOfLegends, $platformRegion)->get(
+            '/lol/summoner/v4/summoners/by-puuid/'.rawurlencode($puuid),
+        );
+
+        if ($response->status() === 404) {
+            return null;
+        }
+
+        $this->throwForFailedResponse($response, 'Unable to retrieve this League of Legends profile.');
+
+        return $response->json();
+    }
+
+    /**
      * @return list<string>
      */
     public function recentMatchIds(Game $game, string $routingRegion, string $puuid, int $count = 10): array

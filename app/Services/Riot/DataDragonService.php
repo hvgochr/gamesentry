@@ -28,4 +28,14 @@ class DataDragonService
             rawurlencode($champion),
         );
     }
+
+    public function profileIconUrl(int $profileIconId): string
+    {
+        return sprintf(
+            '%s/cdn/%s/img/profileicon/%d.png',
+            self::BaseUrl,
+            rawurlencode($this->version()),
+            $profileIconId,
+        );
+    }
 }

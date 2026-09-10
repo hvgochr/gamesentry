@@ -6,13 +6,14 @@ use App\Enums\MatchNotificationStatus;
 use App\Models\DiscordServer;
 use App\Models\MatchNotification;
 use App\Models\WatchedPlayer;
+use App\Services\Riot\RiotAssetService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request): Response
+    public function __invoke(Request $request, RiotAssetService $assets): Response
     {
         $user = $request->user();
         $serverIds = DiscordServer::query()
@@ -26,7 +27,7 @@ class DashboardController extends Controller
             ->whereIn('discord_server_id', $serverIds);
 
         $recentNotifications = MatchNotification::query()
-            ->with(['discordServer:id,name', 'watchedPlayer:id,game_name,tag_line'])
+            ->with(['discordServer:id,name', 'watchedPlayer:id,game_name,tag_line,profile_icon_id'])
             ->whereIn('discord_server_id', $serverIds)
             ->latest()
             ->limit(8)
@@ -40,6 +41,13 @@ class DashboardController extends Controller
                 'player_name' => $notification->watchedPlayer === null
                     ? null
                     : "{$notification->watchedPlayer->game_name}#{$notification->watchedPlayer->tag_line}",
+                'profile_icon_url' => $assets->profileIconUrl(
+                    $notification->watchedPlayer?->profile_icon_id,
+                ),
+                'champion_icon_url' => $assets->championIconUrl(
+                    $notification->game,
+                    data_get($notification->match_payload, 'player.champion'),
+                ),
                 'roast_text' => $notification->roast_text,
                 'failure_reason' => $notification->failure_reason,
                 'delivered_at' => $notification->delivered_at?->toIso8601String(),
