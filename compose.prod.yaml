@@ -1,6 +1,6 @@
 services:
   web:
-    image: ${GAMESENTRY_IMAGE}
+    image: ${GAMESENTRY_IMAGE:?Set GAMESENTRY_IMAGE to an immutable GHCR image}
     restart: unless-stopped
     env_file:
       - .env.production
@@ -18,8 +18,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-    volumes:
-      - ./docker/php/php.prod.ini:/etc/frankenphp/php.d/99-app.ini:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -31,7 +29,7 @@ services:
           - gamesentry-web
 
   worker:
-    image: ${GAMESENTRY_IMAGE}
+    image: ${GAMESENTRY_IMAGE:?Set GAMESENTRY_IMAGE to an immutable GHCR image}
     restart: unless-stopped
     command:
       - php
@@ -44,8 +42,6 @@ services:
       - .env.production
     healthcheck:
       disable: true
-    volumes:
-      - ./docker/php/php.prod.ini:/etc/frankenphp/php.d/99-app.ini:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -54,7 +50,7 @@ services:
       - egress
 
   scheduler:
-    image: ${GAMESENTRY_IMAGE}
+    image: ${GAMESENTRY_IMAGE:?Set GAMESENTRY_IMAGE to an immutable GHCR image}
     restart: unless-stopped
     command:
       - php
@@ -64,8 +60,6 @@ services:
       - .env.production
     healthcheck:
       disable: true
-    volumes:
-      - ./docker/php/php.prod.ini:/etc/frankenphp/php.d/99-app.ini:ro
     depends_on:
       postgres:
         condition: service_healthy

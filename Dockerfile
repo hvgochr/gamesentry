@@ -20,39 +20,6 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 
 # ---------------------------------------------------------------------------
-# Development
-# ---------------------------------------------------------------------------
-
-FROM php-base AS development
-
-COPY composer.json composer.lock ./
-
-RUN composer install \
-    --no-interaction \
-    --prefer-dist \
-    --no-scripts
-
-COPY . .
-
-RUN composer dump-autoload
-
-
-# ---------------------------------------------------------------------------
-# Node development
-# ---------------------------------------------------------------------------
-
-FROM node:22-bookworm-slim AS node-development
-
-WORKDIR /app
-
-COPY package.json package-lock.json ./
-
-RUN npm ci
-
-COPY . .
-
-
-# ---------------------------------------------------------------------------
 # Composer production dependencies
 # ---------------------------------------------------------------------------
 
@@ -100,6 +67,8 @@ RUN npm run build
 # ---------------------------------------------------------------------------
 
 FROM php-base AS production
+
+COPY docker/php/php.prod.ini /usr/local/etc/php/conf.d/99-app.ini
 
 COPY --from=composer-production /app/vendor /app/vendor
 
