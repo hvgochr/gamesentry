@@ -99,13 +99,19 @@ jobs:
               fi
             done
 
-            curl --fail --silent --show-error --retry 5 --retry-delay 2 \
-              https://gamesentry.charradehugo.com/up
-
-            # Keep the last verified image separate from application settings.
-            printf 'GAMESENTRY_IMAGE=%s\n' "$GAMESENTRY_IMAGE" > .env.deploy.tmp
-            mv .env.deploy.tmp .env.deploy
             compose ps
+          EOF
+
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 \
+            https://gamesentry.charradehugo.com/up
+
+          ssh "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "IMAGE_SHA='${IMAGE_SHA}' bash -s" <<'EOF'
+            set -euo pipefail
+            cd /srv/gamesentry
+            # Keep the last verified image separate from application settings.
+            printf 'GAMESENTRY_IMAGE=ghcr.io/hvgochr/gamesentry:%s\n' "$IMAGE_SHA" > .env.deploy.tmp
+            mv .env.deploy.tmp .env.deploy
 
             echo "Deployment complete: ${IMAGE_SHA}"
           EOF
