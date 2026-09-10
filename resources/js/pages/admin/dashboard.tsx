@@ -18,6 +18,7 @@ import AdminUserController from '@/actions/App/Http/Controllers/Admin/AdminUserC
 import AdminWatchedPlayerController from '@/actions/App/Http/Controllers/Admin/AdminWatchedPlayerController';
 import DestructiveActionDialog from '@/components/destructive-action-dialog';
 import Heading from '@/components/heading';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -78,6 +79,7 @@ type ActiveWatchedPlayer = {
     id: number;
     game: string;
     name: string;
+    profile_icon_url: string | null;
     server_name: string;
     user_name: string;
     next_poll_at: string | null;
@@ -610,14 +612,31 @@ export default function AdminDashboard({
                                         className="rounded-lg border p-3"
                                     >
                                         <div className="flex flex-wrap items-start justify-between gap-3">
-                                            <div className="min-w-0">
-                                                <p className="truncate font-medium">
-                                                    {player.name}
-                                                </p>
-                                                <p className="truncate text-sm text-muted-foreground">
-                                                    {player.server_name} -{' '}
-                                                    {player.game.toUpperCase()}
-                                                </p>
+                                            <div className="flex min-w-0 items-center gap-3">
+                                                <Avatar className="size-9 border">
+                                                    <AvatarImage
+                                                        src={
+                                                            player.profile_icon_url ??
+                                                            undefined
+                                                        }
+                                                        alt={`${player.name} profile icon`}
+                                                        loading="lazy"
+                                                    />
+                                                    <AvatarFallback>
+                                                        {player.name
+                                                            .slice(0, 2)
+                                                            .toUpperCase()}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div className="min-w-0">
+                                                    <p className="truncate font-medium">
+                                                        {player.name}
+                                                    </p>
+                                                    <p className="truncate text-sm text-muted-foreground">
+                                                        {player.server_name} ·{' '}
+                                                        {player.game.toUpperCase()}
+                                                    </p>
+                                                </div>
                                             </div>
                                             <DestructiveActionDialog
                                                 form={AdminWatchedPlayerController.disable.form(

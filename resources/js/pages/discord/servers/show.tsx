@@ -12,6 +12,7 @@ import {
 import WatchedPlayerController from '@/actions/App/Http/Controllers/Discord/WatchedPlayerController';
 import DestructiveActionDialog from '@/components/destructive-action-dialog';
 import Heading from '@/components/heading';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -48,6 +49,8 @@ type WatchedPlayer = {
     last_polled_at: string | null;
     next_poll_at: string | null;
     poll_interval_seconds: number;
+    profile_icon_url: string | null;
+    profile_refreshed_at: string | null;
     is_active: boolean;
 };
 
@@ -57,6 +60,8 @@ type RecentNotification = {
     riot_match_id: string;
     status: string;
     player_name: string | null;
+    profile_icon_url: string | null;
+    champion_icon_url: string | null;
     roast_text: string | null;
     failure_reason: string | null;
     delivered_at: string | null;
@@ -229,40 +234,65 @@ export default function DiscordServerShow({
                                     className="rounded-xl border p-4"
                                 >
                                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                                        <div className="space-y-2">
-                                            <div>
-                                                <p className="font-medium">
-                                                    {player.game_name}#
-                                                    {player.tag_line}
-                                                </p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {player.game.toUpperCase()}{' '}
-                                                    · {player.routing_region} ·
-                                                    ping{' '}
-                                                    {player.discord_user_id}
-                                                </p>
-                                            </div>
-
-                                            <div className="flex flex-wrap gap-2">
-                                                <Badge
-                                                    variant="outline"
-                                                    className={
-                                                        player.is_active
-                                                            ? 'border-green-200 text-green-700 dark:border-green-950 dark:text-green-300'
-                                                            : 'border-muted-foreground/30 text-muted-foreground'
+                                        <div className="flex min-w-0 gap-3">
+                                            <Avatar className="size-11 border">
+                                                <AvatarImage
+                                                    src={
+                                                        player.profile_icon_url ??
+                                                        undefined
                                                     }
-                                                >
-                                                    {player.is_active
-                                                        ? 'Active'
-                                                        : 'Paused'}
-                                                </Badge>
-                                                <Badge variant="secondary">
-                                                    <Clock className="size-3" />
-                                                    Next poll{' '}
-                                                    {formatDateTime(
-                                                        player.next_poll_at,
+                                                    alt={`${player.game_name} profile icon`}
+                                                    loading="lazy"
+                                                />
+                                                <AvatarFallback>
+                                                    <UserRound className="size-5 text-muted-foreground" />
+                                                </AvatarFallback>
+                                            </Avatar>
+
+                                            <div className="space-y-2">
+                                                <div>
+                                                    <p className="font-medium">
+                                                        {player.game_name}#
+                                                        {player.tag_line}
+                                                    </p>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {player.game.toUpperCase()}{' '}
+                                                        ·{' '}
+                                                        {player.routing_region}{' '}
+                                                        · ping{' '}
+                                                        {player.discord_user_id}
+                                                    </p>
+                                                    {player.profile_refreshed_at && (
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Profile refreshed{' '}
+                                                            {formatDateTime(
+                                                                player.profile_refreshed_at,
+                                                            )}
+                                                        </p>
                                                     )}
-                                                </Badge>
+                                                </div>
+
+                                                <div className="flex flex-wrap gap-2">
+                                                    <Badge
+                                                        variant="outline"
+                                                        className={
+                                                            player.is_active
+                                                                ? 'border-green-200 text-green-700 dark:border-green-950 dark:text-green-300'
+                                                                : 'border-muted-foreground/30 text-muted-foreground'
+                                                        }
+                                                    >
+                                                        {player.is_active
+                                                            ? 'Active'
+                                                            : 'Paused'}
+                                                    </Badge>
+                                                    <Badge variant="secondary">
+                                                        <Clock className="size-3" />
+                                                        Next poll{' '}
+                                                        {formatDateTime(
+                                                            player.next_poll_at,
+                                                        )}
+                                                    </Badge>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -331,15 +361,43 @@ export default function DiscordServerShow({
                                     className="rounded-xl border p-4"
                                 >
                                     <div className="flex flex-wrap items-start justify-between gap-3">
-                                        <div>
-                                            <p className="font-medium">
-                                                {notification.player_name ??
-                                                    'Unknown player'}
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {notification.game.toUpperCase()}{' '}
-                                                · {notification.riot_match_id}
-                                            </p>
+                                        <div className="flex min-w-0 items-center gap-3">
+                                            <div className="relative shrink-0">
+                                                <Avatar className="size-11 border">
+                                                    <AvatarImage
+                                                        src={
+                                                            notification.profile_icon_url ??
+                                                            undefined
+                                                        }
+                                                        alt={`${notification.player_name ?? 'Player'} profile icon`}
+                                                        loading="lazy"
+                                                    />
+                                                    <AvatarFallback>
+                                                        <UserRound className="size-5 text-muted-foreground" />
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                {notification.champion_icon_url && (
+                                                    <img
+                                                        src={
+                                                            notification.champion_icon_url
+                                                        }
+                                                        alt="Played champion"
+                                                        className="absolute -right-2 -bottom-1 size-6 rounded-md border-2 border-background bg-background object-cover"
+                                                        loading="lazy"
+                                                    />
+                                                )}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="truncate font-medium">
+                                                    {notification.player_name ??
+                                                        'Unknown player'}
+                                                </p>
+                                                <p className="truncate text-sm text-muted-foreground">
+                                                    {notification.game.toUpperCase()}{' '}
+                                                    ·{' '}
+                                                    {notification.riot_match_id}
+                                                </p>
+                                            </div>
                                         </div>
 
                                         <Badge

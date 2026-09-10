@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, RefreshCw, UserRound } from 'lucide-react';
 import WatchedPlayerController from '@/actions/App/Http/Controllers/Discord/WatchedPlayerController';
 import WatchedPlayerForm from '@/components/discord/watched-player-form';
 import type {
@@ -7,6 +7,7 @@ import type {
     WatchedPlayerFormData,
 } from '@/components/discord/watched-player-form';
 import Heading from '@/components/heading';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -26,6 +27,8 @@ type Server = {
 
 type WatchedPlayer = WatchedPlayerFormData & {
     id: number;
+    profile_icon_url: string | null;
+    profile_refreshed_at: string | null;
 };
 
 type Props = {
@@ -53,6 +56,7 @@ export default function WatchedPlayerEdit({
         discord_user_id: watchedPlayer.discord_user_id,
         is_active: watchedPlayer.is_active,
     });
+    const refreshForm = useForm<Record<string, never>>({});
 
     return (
         <>
@@ -86,6 +90,66 @@ export default function WatchedPlayerEdit({
                         {error}
                     </div>
                 )}
+
+                <Card>
+                    <CardContent className="flex flex-col gap-4 pt-6 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-3">
+                            <Avatar className="size-12 border">
+                                <AvatarImage
+                                    src={
+                                        watchedPlayer.profile_icon_url ??
+                                        undefined
+                                    }
+                                    alt={`${watchedPlayer.game_name} profile icon`}
+                                    loading="lazy"
+                                />
+                                <AvatarFallback>
+                                    <UserRound className="size-5 text-muted-foreground" />
+                                </AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <p className="font-medium">
+                                    Riot profile metadata
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    {watchedPlayer.profile_refreshed_at
+                                        ? `Last refreshed ${new Date(watchedPlayer.profile_refreshed_at).toLocaleString('fr-FR')}`
+                                        : 'Not refreshed yet'}
+                                </p>
+                            </div>
+                        </div>
+
+                        <form
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                refreshForm.post(
+                                    WatchedPlayerController.refresh.url({
+                                        discordServer: server.id,
+                                        watchedPlayer: watchedPlayer.id,
+                                    }),
+                                    { preserveScroll: true },
+                                );
+                            }}
+                        >
+                            <Button
+                                type="submit"
+                                variant="outline"
+                                disabled={refreshForm.processing}
+                            >
+                                <RefreshCw
+                                    className={
+                                        refreshForm.processing
+                                            ? 'size-4 animate-spin'
+                                            : 'size-4'
+                                    }
+                                />
+                                {refreshForm.processing
+                                    ? 'Refreshing...'
+                                    : 'Refresh Riot profile'}
+                            </Button>
+                        </form>
+                    </CardContent>
+                </Card>
 
                 <Card>
                     <CardHeader>

@@ -1,5 +1,6 @@
 import { Head } from '@inertiajs/react';
 import Heading from '@/components/heading';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     Card,
     CardContent,
@@ -25,6 +26,8 @@ type RecentNotification = {
     status: string;
     server_name: string | null;
     player_name: string | null;
+    profile_icon_url: string | null;
+    champion_icon_url: string | null;
     roast_text: string | null;
     failure_reason: string | null;
     delivered_at: string | null;
@@ -134,18 +137,44 @@ export default function Dashboard({ stats, recentNotifications }: Props) {
                                     className="rounded-xl border p-4"
                                 >
                                     <div className="flex flex-wrap items-start justify-between gap-3">
-                                        <div>
-                                            <p className="font-medium">
-                                                {notification.player_name ??
-                                                    'Joueur inconnu'}
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {notification.server_name ??
-                                                    'Serveur'}{' '}
-                                                -{' '}
-                                                {notification.game.toUpperCase()}{' '}
-                                                - {notification.riot_match_id}
-                                            </p>
+                                        <div className="flex min-w-0 items-center gap-3">
+                                            <Avatar className="size-10 border">
+                                                <AvatarImage
+                                                    src={
+                                                        notification.profile_icon_url ??
+                                                        undefined
+                                                    }
+                                                    alt={`${notification.player_name ?? 'Unknown player'} profile icon`}
+                                                    loading="lazy"
+                                                />
+                                                <AvatarFallback>
+                                                    RI
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            {notification.champion_icon_url && (
+                                                <img
+                                                    src={
+                                                        notification.champion_icon_url
+                                                    }
+                                                    alt="Played champion"
+                                                    loading="lazy"
+                                                    className="size-7 rounded-md border object-cover"
+                                                />
+                                            )}
+                                            <div className="min-w-0">
+                                                <p className="truncate font-medium">
+                                                    {notification.player_name ??
+                                                        'Unknown player'}
+                                                </p>
+                                                <p className="truncate text-sm text-muted-foreground">
+                                                    {notification.server_name ??
+                                                        'Server'}{' '}
+                                                    ·{' '}
+                                                    {notification.game.toUpperCase()}{' '}
+                                                    ·{' '}
+                                                    {notification.riot_match_id}
+                                                </p>
+                                            </div>
                                         </div>
 
                                         <div
