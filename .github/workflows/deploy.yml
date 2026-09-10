@@ -43,7 +43,7 @@ jobs:
           printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
-      - name: Upload deployment files
+      - name: Upload Compose configuration
         env:
           DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
           DEPLOY_USER: ${{ vars.DEPLOY_USER }}
@@ -51,10 +51,6 @@ jobs:
           scp \
             compose.prod.yaml \
             "${DEPLOY_USER}@${DEPLOY_HOST}:/srv/gamesentry/compose.prod.yaml"
-
-          scp \
-            docker/php/php.prod.ini \
-            "${DEPLOY_USER}@${DEPLOY_HOST}:/srv/gamesentry/docker/php/php.prod.ini"
 
       - name: Deploy
         env:
@@ -68,59 +64,48 @@ jobs:
 
             cd /srv/gamesentry
 
-            CURRENT_IMAGE="$(grep '^GAMESENTRY_IMAGE=' .env.production | cut -d= -f2-)"
-            NEW_IMAGE="ghcr.io/hvgochr/gamesentry:${IMAGE_SHA}"
+            export GAMESENTRY_IMAGE="ghcr.io/hvgochr/gamesentry:${IMAGE_SHA}"
+            echo "Deploying: ${GAMESENTRY_IMAGE}"
 
-            export GAMESENTRY_IMAGE="${NEW_IMAGE}"
+            compose() {
+              docker compose --env-file .env.production -p gamesentry -f compose.prod.yaml "$@"
+            }
 
-            echo "Current image: ${CURRENT_IMAGE}"
-            echo "Deploying: ${NEW_IMAGE}"
+            trap 'compose ps -a' ERR
 
-            docker compose \
-              --env-file .env.production \
-              -p gamesentry \
-              -f compose.prod.yaml \
-              pull
+            compose pull
+            compose run --rm --interactive=false -T web php artisan migrate --force
+            compose up -d --force-recreate --remove-orphans web worker scheduler
+            compose up -d --no-recreate --wait --wait-timeout 120 web postgres
 
-            docker compose \
-              --env-file .env.production \
-              -p gamesentry \
-              -f compose.prod.yaml \
-              run \
-              --rm \
-              --interactive=false \
-              --no-tty \
-              web \
-              php artisan migrate --force
+            # Catch early worker/scheduler exits that HTTP health alone misses.
+            sleep 10
+            for service in web worker scheduler postgres; do
+              container="$(compose ps -a -q "$service")"
+              test -n "$container"
+              test "$(docker inspect --format '{{.State.Status}}' "$container")" = running
 
-            docker compose \
-              --env-file .env.production \
-              -p gamesentry \
-              -f compose.prod.yaml \
-              up -d \
-              --force-recreate \
-              --remove-orphans \
-              web worker scheduler
+              case "$service" in
+                web|postgres)
+                  test "$(docker inspect --format '{{.State.Health.Status}}' "$container")" = healthy
+                  ;;
+                worker|scheduler)
+                  test "$(docker inspect --format '{{.RestartCount}}' "$container")" = 0
+                  ;;
+              esac
 
-            sed -i \
-              "s|^GAMESENTRY_IMAGE=.*|GAMESENTRY_IMAGE=${NEW_IMAGE}|" \
-              .env.production
+              if [ "$service" != postgres ]; then
+                test "$(docker inspect --format '{{.Config.Image}}' "$container")" = "$GAMESENTRY_IMAGE"
+              fi
+            done
 
-            docker compose \
-              --env-file .env.production \
-              -p gamesentry \
-              -f compose.prod.yaml \
-              ps
+            curl --fail --silent --show-error --retry 5 --retry-delay 2 \
+              https://gamesentry.charradehugo.com/up
+
+            # Keep the last verified image separate from application settings.
+            printf 'GAMESENTRY_IMAGE=%s\n' "$GAMESENTRY_IMAGE" > .env.deploy.tmp
+            mv .env.deploy.tmp .env.deploy
+            compose ps
 
             echo "Deployment complete: ${IMAGE_SHA}"
           EOF
-
-      - name: Verify deployment
-        run: |
-          curl \
-            --fail \
-            --silent \
-            --show-error \
-            --retry 5 \
-            --retry-delay 2 \
-            https://gamesentry.charradehugo.com/up
