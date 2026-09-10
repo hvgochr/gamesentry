@@ -18,6 +18,8 @@ class WatchedPlayerProfileTest extends TestCase
         parent::setUp();
 
         config([
+            'services.discord.client_id' => 'discord-client-id',
+            'services.discord.redirect' => 'https://gamesentry.test/dashboard/discord/install/callback',
             'services.discord.bot_token' => 'discord-bot-token',
             'services.riot.lol_key' => 'riot-lol-key',
             'services.riot.data_dragon_version' => '16.17.1',
