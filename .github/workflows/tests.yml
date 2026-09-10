@@ -20,6 +20,22 @@ jobs:
     strategy:
       matrix:
         php-version: ['8.4', '8.5']
+        database: ['sqlite', 'pgsql']
+
+    services:
+      postgres:
+        image: postgres:17-bookworm
+        env:
+          POSTGRES_DB: gamesentry_test
+          POSTGRES_USER: gamesentry
+          POSTGRES_PASSWORD: gamesentry
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U gamesentry -d gamesentry_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - name: Checkout code
@@ -31,6 +47,7 @@ jobs:
           php-version: ${{ matrix.php-version }}
           tools: composer:v2
           coverage: xdebug
+          extensions: pdo_sqlite, pdo_pgsql
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -56,4 +73,11 @@ jobs:
         run: composer types:check
 
       - name: Tests
+        env:
+          DB_CONNECTION: ${{ matrix.database }}
+          DB_DATABASE: ${{ matrix.database == 'pgsql' && 'gamesentry_test' || ':memory:' }}
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_USERNAME: gamesentry
+          DB_PASSWORD: gamesentry
         run: php artisan test

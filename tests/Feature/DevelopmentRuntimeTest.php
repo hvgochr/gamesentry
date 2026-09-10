@@ -5,14 +5,18 @@ namespace Tests\Feature;
 use App\Models\WatchedPlayer;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\DevCommands;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class DevelopmentRuntimeTest extends TestCase
 {
-    use RefreshDatabase;
+    /**
+     * Match the queue runtime's transaction boundaries: an outer test transaction
+     * would stay aborted after PostgreSQL rejects a duplicate cache lock insert.
+     */
+    use DatabaseMigrations;
 
     public function test_development_starts_the_scheduler_and_framework_processes(): void
     {
