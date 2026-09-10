@@ -27,6 +27,16 @@ class DataDragonServiceTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_it_builds_a_profile_icon_url_with_the_configured_version(): void
+    {
+        $this->assertSame(
+            'https://ddragon.leagueoflegends.com/cdn/16.17.1/img/profileicon/4567.png',
+            app(DataDragonService::class)->profileIconUrl(4567),
+        );
+
+        Http::assertNothingSent();
+    }
+
     public function test_it_requires_a_configured_version(): void
     {
         config()->set('services.riot.data_dragon_version');
@@ -35,5 +45,15 @@ class DataDragonServiceTest extends TestCase
         $this->expectExceptionMessage('The Riot Data Dragon version is missing.');
 
         app(DataDragonService::class)->championImageUrl('Aatrox');
+    }
+
+    public function test_profile_icon_url_also_requires_a_configured_version(): void
+    {
+        config()->set('services.riot.data_dragon_version');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('The Riot Data Dragon version is missing.');
+
+        app(DataDragonService::class)->profileIconUrl(4567);
     }
 }

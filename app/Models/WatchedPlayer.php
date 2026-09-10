@@ -22,6 +22,8 @@ use Illuminate\Support\Carbon;
  * @property string $game_name
  * @property string $tag_line
  * @property string $riot_puuid
+ * @property int|null $profile_icon_id
+ * @property Carbon|null $profile_refreshed_at
  * @property string $discord_user_id
  * @property string|null $last_seen_match_id
  * @property Carbon|null $last_polled_at
@@ -40,6 +42,8 @@ use Illuminate\Support\Carbon;
     'game_name',
     'tag_line',
     'riot_puuid',
+    'profile_icon_id',
+    'profile_refreshed_at',
     'discord_user_id',
     'last_seen_match_id',
     'last_polled_at',
@@ -64,6 +68,8 @@ class WatchedPlayer extends Model
     {
         return [
             'game' => Game::class,
+            'profile_icon_id' => 'integer',
+            'profile_refreshed_at' => 'datetime',
             'last_polled_at' => 'datetime',
             'next_poll_at' => 'datetime',
             'poll_interval_seconds' => 'integer',

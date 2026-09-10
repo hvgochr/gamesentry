@@ -29,6 +29,8 @@ Route::prefix('dashboard')
                     ->name('servers.watched-players.edit');
                 Route::patch('servers/{discordServer}/watched-players/{watchedPlayer}', [WatchedPlayerController::class, 'update'])
                     ->name('servers.watched-players.update');
+                Route::post('servers/{discordServer}/watched-players/{watchedPlayer}/refresh', [WatchedPlayerController::class, 'refresh'])
+                    ->name('servers.watched-players.refresh');
                 Route::delete('servers/{discordServer}/watched-players/{watchedPlayer}', [WatchedPlayerController::class, 'destroy'])
                     ->name('servers.watched-players.destroy');
             });
