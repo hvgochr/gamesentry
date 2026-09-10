@@ -3,6 +3,7 @@
 namespace Tests\Feature\Discord;
 
 use App\Models\DiscordServer;
+use App\Models\MatchNotification;
 use App\Models\User;
 use App\Models\WatchedPlayer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -54,6 +55,7 @@ class DiscordPagesTest extends TestCase
             'services.discord.client_id' => 'discord-client-id',
             'services.discord.redirect' => 'https://gamesentry.test/discord/callback',
             'services.discord.bot_token' => 'discord-bot-token',
+            'services.riot.data_dragon_version' => '16.17.1',
         ]);
 
         $user = User::factory()->create();
@@ -64,9 +66,16 @@ class DiscordPagesTest extends TestCase
             'name' => 'Ranked Lounge',
         ]);
 
-        WatchedPlayer::factory()->for($server)->create([
+        $watchedPlayer = WatchedPlayer::factory()->for($server)->create([
             'game_name' => 'Hugo',
             'tag_line' => 'EUW',
+            'profile_icon_id' => 4567,
+        ]);
+
+        MatchNotification::factory()->for($watchedPlayer)->create([
+            'match_payload' => [
+                'player' => ['champion' => 'Aatrox'],
+            ],
         ]);
 
         $this->actingAs($user)
@@ -76,7 +85,19 @@ class DiscordPagesTest extends TestCase
                 ->component('discord/servers/show')
                 ->where('server.name', 'Ranked Lounge')
                 ->has('watchedPlayers', 1)
-                ->where('watchedPlayers.0.game_name', 'Hugo'));
+                ->where('watchedPlayers.0.game_name', 'Hugo')
+                ->where(
+                    'watchedPlayers.0.profile_icon_url',
+                    'https://ddragon.leagueoflegends.com/cdn/16.17.1/img/profileicon/4567.png',
+                )
+                ->where(
+                    'recentNotifications.0.profile_icon_url',
+                    'https://ddragon.leagueoflegends.com/cdn/16.17.1/img/profileicon/4567.png',
+                )
+                ->where(
+                    'recentNotifications.0.champion_icon_url',
+                    'https://ddragon.leagueoflegends.com/cdn/16.17.1/img/champion/Aatrox.png',
+                ));
 
         Http::fake([
             'https://discord.com/api/v10/guilds/123456789012345678' => Http::response([

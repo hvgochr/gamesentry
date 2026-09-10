@@ -10,7 +10,7 @@ use RuntimeException;
 
 class MatchSummaryService
 {
-    public function __construct(private readonly DataDragonService $dataDragon) {}
+    public function __construct(private readonly RiotAssetService $assets) {}
 
     /**
      * @param  array<string, mixed>  $match
@@ -35,12 +35,24 @@ class MatchSummaryService
             'name' => $summary['riot_id'],
         ];
 
+        $profileIconId = $summary['profile_icon_id'] ?? null;
+        $profileIconUrl = is_int($profileIconId)
+            ? $this->assets->profileIconUrl($profileIconId)
+            : null;
+
+        if ($profileIconUrl !== null) {
+            $author['icon_url'] = $profileIconUrl;
+        }
+
         $champion = data_get($summary, 'player.champion');
         $championImageUrl = null;
 
-        if (is_string($champion) && $champion !== '') {
-            $championImageUrl = $this->dataDragon->championImageUrl($champion);
-            $author['icon_url'] = $championImageUrl;
+        $game = is_string($summary['game'] ?? null)
+            ? Game::tryFrom($summary['game'])
+            : null;
+
+        if ($game !== null) {
+            $championImageUrl = $this->assets->championIconUrl($game, $champion);
         }
 
         $embed = [
@@ -115,6 +127,7 @@ class MatchSummaryService
             'game' => $watchedPlayer->game->value,
             'match_id' => (string) data_get($match, 'metadata.matchId'),
             'riot_id' => "{$watchedPlayer->game_name}#{$watchedPlayer->tag_line}",
+            'profile_icon_id' => $watchedPlayer->profile_icon_id,
             'title' => "{$champion} - {$result}",
             'summary_line' => "{$watchedPlayer->game_name} has achieved a {$result} playing {$champion} with a KDA of {$kills}/{$deaths}/{$assists}.",
             'color' => data_get($participant, 'win') ? 0x22C55E : 0xEF4444,
@@ -162,6 +175,7 @@ class MatchSummaryService
             'game' => $watchedPlayer->game->value,
             'match_id' => (string) data_get($match, 'metadata.match_id'),
             'riot_id' => "{$watchedPlayer->game_name}#{$watchedPlayer->tag_line}",
+            'profile_icon_id' => $watchedPlayer->profile_icon_id,
             'title' => "TFT - #{$placement}/8",
             'summary_line' => "{$watchedPlayer->game_name} finished in #{$placement} place with a team of {$units}.",
             'color' => $placement <= 4 ? 0x22C55E : 0xF59E0B,

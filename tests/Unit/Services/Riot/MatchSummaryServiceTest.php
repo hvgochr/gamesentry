@@ -21,6 +21,7 @@ class MatchSummaryServiceTest extends TestCase
         $embed = app(MatchSummaryService::class)->discordEmbed([
             'game' => 'lol',
             'riot_id' => 'Player#EUW',
+            'profile_icon_id' => 4567,
             'title' => 'Aatrox - victory',
             'summary_line' => 'Player won with Aatrox.',
             'color' => 0x22C55E,
@@ -32,13 +33,36 @@ class MatchSummaryServiceTest extends TestCase
         ]);
 
         $championImageUrl = 'https://ddragon.leagueoflegends.com/cdn/16.17.1/img/champion/Aatrox.png';
+        $profileIconUrl = 'https://ddragon.leagueoflegends.com/cdn/16.17.1/img/profileicon/4567.png';
 
         $this->assertSame([
             'name' => 'Player#EUW',
-            'icon_url' => $championImageUrl,
+            'icon_url' => $profileIconUrl,
         ], $embed['author']);
         $this->assertSame(['url' => $championImageUrl], $embed['thumbnail']);
         Http::assertNothingSent();
+    }
+
+    public function test_league_embed_remains_valid_without_a_profile_icon(): void
+    {
+        $embed = app(MatchSummaryService::class)->discordEmbed([
+            'game' => 'lol',
+            'riot_id' => 'Player#EUW',
+            'profile_icon_id' => null,
+            'title' => 'Aatrox - victory',
+            'summary_line' => 'Player won with Aatrox.',
+            'color' => 0x22C55E,
+            'finished_at' => '2026-09-09T12:00:00+00:00',
+            'player' => [
+                'champion' => 'Aatrox',
+            ],
+            'embed_fields' => [],
+        ]);
+
+        $this->assertSame(['name' => 'Player#EUW'], $embed['author']);
+        $this->assertSame([
+            'url' => 'https://ddragon.leagueoflegends.com/cdn/16.17.1/img/champion/Aatrox.png',
+        ], $embed['thumbnail']);
     }
 
     public function test_tft_embed_contains_the_riot_id_without_a_champion_image(): void
@@ -46,12 +70,14 @@ class MatchSummaryServiceTest extends TestCase
         $embed = app(MatchSummaryService::class)->discordEmbed([
             'game' => 'tft',
             'riot_id' => 'Player#EUW',
+            'profile_icon_id' => null,
             'title' => 'TFT - #1/8',
             'summary_line' => 'Player finished first.',
             'color' => 0x22C55E,
             'finished_at' => '2026-09-09T12:00:00+00:00',
             'player' => [
                 'placement' => 1,
+                'champion' => 'Aatrox',
             ],
             'embed_fields' => [],
         ]);
@@ -59,5 +85,25 @@ class MatchSummaryServiceTest extends TestCase
         $this->assertSame(['name' => 'Player#EUW'], $embed['author']);
         $this->assertArrayNotHasKey('thumbnail', $embed);
         Http::assertNothingSent();
+    }
+
+    public function test_missing_data_dragon_version_does_not_break_the_embed(): void
+    {
+        config()->set('services.riot.data_dragon_version');
+
+        $embed = app(MatchSummaryService::class)->discordEmbed([
+            'game' => 'lol',
+            'riot_id' => 'Player#EUW',
+            'profile_icon_id' => 4567,
+            'title' => 'Aatrox - victory',
+            'summary_line' => 'Player won with Aatrox.',
+            'color' => 0x22C55E,
+            'finished_at' => '2026-09-09T12:00:00+00:00',
+            'player' => ['champion' => 'Aatrox'],
+            'embed_fields' => [],
+        ]);
+
+        $this->assertSame(['name' => 'Player#EUW'], $embed['author']);
+        $this->assertArrayNotHasKey('thumbnail', $embed);
     }
 }

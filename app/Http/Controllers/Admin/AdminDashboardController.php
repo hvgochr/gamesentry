@@ -10,6 +10,7 @@ use App\Models\MatchNotification;
 use App\Models\User;
 use App\Models\WatchedPlayer;
 use App\Services\Plans\PlanLimitService;
+use App\Services\Riot\RiotAssetService;
 use App\Services\Riot\RiotPollingService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -19,14 +20,17 @@ use Inertia\Response;
 
 class AdminDashboardController extends Controller
 {
-    public function __invoke(RiotPollingService $polling, PlanLimitService $limits): Response
-    {
+    public function __invoke(
+        RiotPollingService $polling,
+        PlanLimitService $limits,
+        RiotAssetService $assets,
+    ): Response {
         return Inertia::render('admin/dashboard', [
             'stats' => $this->stats(),
             'users' => $this->users($limits),
             'recentFailedNotifications' => $this->recentFailedNotifications(),
             'servers' => $this->servers(),
-            'activeWatchedPlayers' => $this->activeWatchedPlayers(),
+            'activeWatchedPlayers' => $this->activeWatchedPlayers($assets),
             'failedJobs' => $this->failedJobs(),
             'queueBacklog' => $this->queueBacklog(),
             'scheduler' => $this->scheduler(),
@@ -133,7 +137,7 @@ class AdminDashboardController extends Controller
     /**
      * @return list<array<string, mixed>>
      */
-    private function activeWatchedPlayers(): array
+    private function activeWatchedPlayers(RiotAssetService $assets): array
     {
         return $this->listOf(WatchedPlayer::query()
             ->with(['discordServer:id,user_id,name', 'discordServer.user:id,name,email'])
@@ -145,6 +149,7 @@ class AdminDashboardController extends Controller
                 'id' => $player->id,
                 'game' => $player->game->value,
                 'name' => "{$player->game_name}#{$player->tag_line}",
+                'profile_icon_url' => $assets->profileIconUrl($player->profile_icon_id),
                 'server_name' => $player->discordServer->name,
                 'user_name' => $player->discordServer->user->name,
                 'next_poll_at' => $player->next_poll_at?->toIso8601String(),
