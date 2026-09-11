@@ -20,6 +20,7 @@ flowchart TB
     Worker --> Discord
 
     DataDragon["Data Dragon CDN"] -. image URLs .-> Discord
+    DataDragon -. image URLs .-> Web
 ```
 
 The diagram shows application-level responsibilities. In production, Caddy sits in front of the `web` container and PostgreSQL is reachable only on the internal Compose network.
