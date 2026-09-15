@@ -14,7 +14,17 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  tests:
+    uses: ./.github/workflows/tests.yml
+
+  linter:
+    uses: ./.github/workflows/lint.yml
+
   build-and-push:
+    needs:
+      - tests
+      - linter
+
     runs-on: ubuntu-latest
 
     steps:
