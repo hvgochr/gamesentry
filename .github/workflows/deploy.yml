@@ -45,8 +45,8 @@ jobs:
   deploy:
     needs: check_release
     if: ${{ needs.check_release.outputs.is_current == 'true' }}
-
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     environment:
       name: production
@@ -72,42 +72,93 @@ jobs:
           printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
-      - name: Upload Compose configuration
+      # Upload outside the lock, but do not replace the active Compose yet.
+      - name: Upload Compose candidate
         env:
           DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
           DEPLOY_USER: ${{ vars.DEPLOY_USER }}
         run: |
-          scp \
-            compose.prod.yaml \
-            "${DEPLOY_USER}@${DEPLOY_HOST}:/srv/gamesentry/compose.prod.yaml"
+          candidate="compose.prod.yaml.upload-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          scp compose.prod.yaml \
+            "${DEPLOY_USER}@${DEPLOY_HOST}:/srv/gamesentry/${candidate}"
 
-      - name: Deploy
+      - name: Deploy and verify under operations lock
         env:
           DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
           DEPLOY_USER: ${{ vars.DEPLOY_USER }}
           IMAGE_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          ssh "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            "IMAGE_SHA='${IMAGE_SHA}' bash -s" <<'EOF'
+          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=40 \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "IMAGE_SHA='${IMAGE_SHA}' COMPOSE_CANDIDATE='compose.prod.yaml.upload-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}' bash -s" <<'EOF'
             set -euo pipefail
-
+            umask 077
             cd /srv/gamesentry
+
+            # Keep this descriptor open across migration, recreation, checks and
+            # publication of .env.deploy. Never delete or replace .ops.lock.
+            exec 9<> .ops.lock
+            flock -w 900 9 || { echo 'Timed out waiting for GameSentry operations lock.' >&2; exit 1; }
+
+            previous_compose=''
+            compose_activated=false
+            recreation_started=false
+            deployment_complete=false
+
+            cleanup() {
+              status=$?
+              trap - EXIT
+              if [ "$status" -ne 0 ]; then
+                if [ "$compose_activated" = true ] && [ "$recreation_started" = false ] && [ -n "$previous_compose" ]; then
+                  mv -- "$previous_compose" compose.prod.yaml
+                  previous_compose=''
+                  echo 'Restored previous Compose; running services were not recreated.' >&2
+                elif [ "$recreation_started" = true ]; then
+                  echo "Deployment incomplete; previous Compose retained at ${previous_compose} for manual recovery." >&2
+                fi
+                docker compose --env-file .env.production --env-file .env.deploy -p gamesentry -f compose.prod.yaml ps -a || true
+              fi
+              rm -f -- "$COMPOSE_CANDIDATE"
+              if [ "$deployment_complete" = true ] && [ -n "$previous_compose" ]; then
+                rm -f -- "$previous_compose"
+              fi
+              exit "$status"
+            }
+            trap cleanup EXIT
+            trap 'exit 130' INT
+            trap 'exit 143' TERM
+
+            test -f "$COMPOSE_CANDIDATE"
+            test -f .env.production
+            test -f .env.deploy
+            grep -q '^GAMESENTRY_IMAGE=' .env.deploy
+
+            # A shell variable must not override the image recorded in .env.deploy
+            # during validation; deploy commands explicitly select the new image.
+            unset GAMESENTRY_IMAGE || true
+            docker compose --env-file .env.production --env-file .env.deploy \
+              -p gamesentry -f "$COMPOSE_CANDIDATE" config -q
+
+            previous_compose="$(mktemp ./compose.prod.yaml.previous.XXXXXXXX)"
+            cp -p -- compose.prod.yaml "$previous_compose"
+            mv -- "$COMPOSE_CANDIDATE" compose.prod.yaml
+            compose_activated=true
 
             export GAMESENTRY_IMAGE="ghcr.io/hvgochr/gamesentry:${IMAGE_SHA}"
             echo "Deploying: ${GAMESENTRY_IMAGE}"
 
             compose() {
-              docker compose --env-file .env.production -p gamesentry -f compose.prod.yaml "$@"
+              docker compose --env-file .env.production --env-file .env.deploy -p gamesentry -f compose.prod.yaml "$@"
             }
 
-            trap 'compose ps -a' ERR
-
             compose pull
+            # --interactive=false prevents Compose from consuming the SSH heredoc.
             compose run --rm --interactive=false -T web php artisan migrate --force
+
+            recreation_started=true
             compose up -d --force-recreate --remove-orphans web worker scheduler
             compose up -d --no-recreate --wait --wait-timeout 120 web postgres
 
-            # Catch early worker/scheduler exits that HTTP health alone misses.
             sleep 10
             for service in web worker scheduler postgres; do
               container="$(compose ps -a -q "$service")"
@@ -128,19 +179,25 @@ jobs:
               fi
             done
 
+            # Test Caddy -> FrankenPHP -> Laravel while still holding the lock.
+            curl --fail --silent --show-error --retry 5 --retry-delay 2 \
+              --retry-connrefused --max-time 15 \
+              --resolve gamesentry.charradehugo.com:443:127.0.0.1 \
+              https://gamesentry.charradehugo.com/up > /dev/null
+
+            # Publish the verified SHA last, without touching application secrets.
+            deploy_tmp="$(mktemp ./.env.deploy.XXXXXXXX)"
+            printf 'GAMESENTRY_IMAGE=%s\n' "$GAMESENTRY_IMAGE" > "$deploy_tmp"
+            chmod 600 "$deploy_tmp"
+            mv -- "$deploy_tmp" .env.deploy
+            deployment_complete=true
+
             compose ps
-          EOF
-
-          curl --fail --silent --show-error --retry 5 --retry-delay 2 \
-            https://gamesentry.charradehugo.com/up
-
-          ssh "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            "IMAGE_SHA='${IMAGE_SHA}' bash -s" <<'EOF'
-            set -euo pipefail
-            cd /srv/gamesentry
-            # Keep the last verified image separate from application settings.
-            printf 'GAMESENTRY_IMAGE=ghcr.io/hvgochr/gamesentry:%s\n' "$IMAGE_SHA" > .env.deploy.tmp
-            mv .env.deploy.tmp .env.deploy
-
             echo "Deployment complete: ${IMAGE_SHA}"
           EOF
+
+      # Additional external smoke test after the locked, verified deployment.
+      - name: Verify public HTTP endpoint
+        run: |
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 \
+            https://gamesentry.charradehugo.com/up > /dev/null
