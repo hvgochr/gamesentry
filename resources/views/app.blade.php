@@ -4,6 +4,14 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
+        <script
+            defer
+            src="https://umami.charradehugo.com/script.js"
+            data-website-id="515aab8d-c60c-406b-bbe1-f726be629b9a"
+            data-domains="gamesentry.charradehugo.com"
+            data-exclude-search="true"
+        ></script>
+
         {{-- Inline script to detect system dark mode preference and apply it immediately --}}
         <script>
             (function() {
